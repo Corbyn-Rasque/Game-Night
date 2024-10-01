@@ -6,6 +6,6 @@ Game Night would be a project to find current and upcoming game night planned at
 
 ## Memberss & Emails
 * Corbyn Rasque — ccrasque@calpoly.edu
-* Ozcar Cayetano — hello@calpoly.edu
-* Alan Castillo — hello@calpoly.edu
+* Ozcar Cayetano — ocayetan@calpoly.edu
+* Alan Castillo — acast125@calpoly.edu
 * Noah Snodgrass — hello@calpoly.edu
