@@ -1,1 +1,1 @@
-# CSC-365-Team-Project
+# CSC 365 Team Project: Game Night
