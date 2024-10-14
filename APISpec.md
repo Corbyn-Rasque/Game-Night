@@ -27,13 +27,52 @@ Retrieves the user at the specified username. Usernames will be unique to indivi
       "username": 
     }
 ]
+```
 
 ## 2. Events [NOAH]
 
-### 2.1. Get Events `/events/:{start}?/:{end}?/:{genre}?`
+### 2.1. Get Events `/events/:{start}?/:{end}?/:{genre}?` (GET)
+Retrieves any event(s) in the specified range or genre. 
+**Response**
+```json
+[
+  {
+    "event_type":"string",
+    "duration":"int",
+    "time":"DateTime",
+    "location":"string",
+    "description":"string",
+    "max_participants":"int",
+    "min_participants":"int",
+  }
+]
+```
 
-### 2.2. Set Events `/events`
+### 2.2. Set Events `/events` (POST)
+Posts a new event to the database 
 
+**Request**
+```json
+[
+  {
+    "event_type":"string",
+    "duration":"int",
+    "time":"DateTime",
+    "location":"string",
+    "description":"string",
+    "max_participants":"int",
+    "min_participants":"int",
+  }
+]
+```
+**Response**
+```json
+[
+  {
+    "success":"boolean"
+  }
+]
+```
 
 ## 3. Brackets [OZCAR]
 
