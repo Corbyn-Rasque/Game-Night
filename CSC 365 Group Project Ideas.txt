@@ -1,0 +1,9 @@
+# Team Project Proposals
+
+## Watering Hole — Cal Poly Water Fountain Ratings
+
+Watering Hole would be a project to track and rate water fountain locations around Cal Poly, using grassroots data collection from people listing found water fountains and listing their location. People could rate, leave a review, rate the water temperature and taste, update the filter status & count, etc. New water fountains could be vetted for accuracy before being displayed live. Fountains could be displayed on a map, and the closest water fountain to your current location could be found. New users would be encouraged to find new locations to achieve a “Discoverer” status that would be prominently displayed, and rankings could be used for rating fountains, updating data, and vetting new water fountain locations.
+
+## Game Night — Cal Poly Dorm Game Finder
+
+Game Night would be a project to find current and upcoming game night planned at Cal Poly dorms/apartments, where what the console/game combo or board game, open player seats, and time/duration/location would be listed. Brackets could be done within each party or between parties. Equipment & Food/Supplies lists could be used to coordinate what needs to be brought along (controllers, game discs, TVs, pizza, etc). Plans could be posted in advanced, so people would know what to expect potential noise above or below apartments. Bracket data could be used to determine which players might be a close match for future matches and might inform future brackets, as well. 
