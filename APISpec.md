@@ -91,13 +91,13 @@ Creates a new event in the database.
 
 ## 3. Brackets
 
-### 3.1 Get Bracket `/brackets/{bracket_id}` (GET)
-Presets the bracket with the specified id.
+### 3.1 Get Bracket `/brackets/{event_id}` (GET)
+Presents the bracket from a specific event.
 
 **Response**:
 ```json
 {
-  "id":"int",
+  "bracket_id":"int",
   "name":"string",
   "active":"string",  /*Past, Current, or Upcoming*/
   "game":"string",
