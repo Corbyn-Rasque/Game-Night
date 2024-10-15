@@ -206,3 +206,60 @@ Creates a new game and gives it a unique id.
   "success":"boolean",
 }
 ```
+
+## 5. Objects
+
+### 5.1. Get All Objects For Event `/items/{event_id}` (GET)
+Returns a list of items associated with a specific event ID
+
+**Response**
+```json
+[
+  {
+  "id":"int",
+  "name":"string",
+  "type":"string", /*Food, Supplies, Party Favors, etc.*/
+  "quantity":"int",
+  "requested":"int",
+  "cost":"int",
+  }
+]
+```
+
+### 5.2. Get Object By ID `/items/{item_id}` (GET)
+Retrieves the details of a specific item for actions like editing to happen.
+
+**Response**
+```json
+{
+  "id":"int",
+  "name":"string",
+  "type":"string", /*Food, Supplies, Party Favors, etc.*/
+  "quantity":"int",
+  "requested":"int",
+  "cost":"int",
+}
+```
+
+### 5.3. Add Object `/items` (POST)
+Adds an item in the database that can then be associated with an event by the item ID.
+
+**Request**:
+```json
+{
+  "name":"string",
+  "type":"string", /*Food, Supplies, Party Favors, etc.*/
+  "quantity":"int",
+  "requested":"int",
+  "cost":"int",
+}
+```
+
+**Response**
+States 201
+
+### 5.3. Remove Object `/items/{item}` (DELETE)
+Removes an item from the database if user wants to remove it from an event.
+
+**Response**
+Status 204
