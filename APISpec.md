@@ -33,6 +33,7 @@ Retrieves the user at the specified username. Usernames will be unique to indivi
 
 ### 2.1. Get Events `/events/:{start}?/:{end}?/:{genre}?` (GET)
 Retrieves any event(s) in the specified range or genre. 
+
 **Response**
 ```json
 [
