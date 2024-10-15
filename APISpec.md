@@ -29,40 +29,34 @@ Retrieves the user at the specified username. Usernames will be unique to indivi
 ]
 ```
 
-## 2. Events [NOAH]
+## 2. Events
 
-### 2.1. Get Events `/events/:{start}?/:{end}?/:{genre}?` (GET)
-Retrieves any event(s) in the specified range or genre. 
+### 2.1. Get Events `/events{?active,type}` (GET)
+Retrieves any and all event(s) with the corresponding active status and/or type. If neither variable is undefined, it will return all events. 
 
 **Response**
 ```json
 [
   {
-    "event_type":"string",
-    "duration":"int",
-    "time":"DateTime",
-    "location":"string",
+    "id":"int",
+    "name":"string",
     "description":"string",
-    "max_participants":"int",
-    "min_participants":"int",
   }
 ]
 ```
 
 ### 2.2. Set Events `/events` (POST)
-Posts a new event to the database 
+Creates a new event in the database.
 
 **Request**
 ```json
 [
   {
-    "event_type":"string",
-    "duration":"int",
-    "time":"DateTime",
-    "location":"string",
+    "name":"string",
     "description":"string",
-    "max_participants":"int",
-    "min_participants":"int",
+    "active":"string",  /*Past, Current, or Upcoming*/
+    "type":"string", /*Movie, Video Game, Tabletop Game, etc.*/
+    "max_attendees":"int"
   }
 ]
 ```
