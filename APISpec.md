@@ -16,7 +16,7 @@ Retrieves the user at the specified username. Usernames will be unique to indivi
 ```
 
 
-### 1.2. Get User By id – `/users/{id}/` (GET)
+### 1.2. Get User By id – `/users/{user_id}/` (GET)
 
 Retrieves the user with the specified id.
 
@@ -83,16 +83,15 @@ Creates a new event in the database.
 ```
 **Response**
 ```json
-[
-  {
-    "success":"boolean"
-  }
-]
+
+{
+  "success":"boolean"
+}~
 ```
 
 ## 3. Brackets
 
-### 3.1 Get Bracket `/brackets/{id}`
+### 3.1 Get Bracket `/brackets/{bracket_id}` (GET)
 Presets the bracket with the specified id.
 
 **Response**:
@@ -106,7 +105,7 @@ Presets the bracket with the specified id.
 }
 ```
 
-### 3.2 Set Brackets `/brackets`
+### 3.2 Create Brackets `/brackets` (POST)
 Creates a new bracket and gives it a unique id.
 
 **Request**:
@@ -127,15 +126,54 @@ Creates a new bracket and gives it a unique id.
 }
 ```
 
+### 3.3 Get All Matches in Bracket `/brackets/{bracket_id}/matches` (GET)
+Retrieves all the matches in a bracket. Will give the match IDs along with info about that  match.
 
-## 4. Games [ALAN]
+**Response**:
+```json
+[
+  {
+    "match_id":"integer",
+    "teams":[    /*Can have many teams playing a match*/
+      {
+        "team_id":"integer",
+        "players":[   /*Can have multiple players in a team*/
+          {
+            "user_id":"integer",
+            "username":"string"
+          },
+          {...} 
+        ]
+      },
+      {...}
+    ]
+  }
+]
+```
+
+### 3.4 Get Match by id `/brackets/{bracket_id}/matches/{match_id}` (GET)
+Retrieves a specific match in a specific bracket with all the information about that match.
+
+**Response**:
+```json
+{
+  "teams":[    /*Can have many teams playing a match*/
+    {
+      "team_id":"integer",
+      "players":[   /*Can have multiple players in a team*/
+        {
+          "user_id":"integer",
+          "username":"string"
+        },
+        {...} 
+      ]
+    },
+    {...}
+  ]
+}
+```
+## 4. Games
 
 ### 4.1 Get Games `/games`
 
 ### 4.2 Set Games `/games`
-
-## 5. Objects [CORBYN]
-
-### 5.1 Get Objects `/objects`
-
-### 5.2 Set Objects `/objects`
