@@ -1,32 +1,54 @@
 # API Specification for Game Night
 
-## 1. Users [EVERYONE]
+## 1. Users
 
-### 1.1. Get User – `/user/:{username}?/`
+### 1.1. Get User By username – `/users/user/{username}/` (GET)
 
 Retrieves the user at the specified username. Usernames will be unique to individuals, and only a single user with be returned.
 
 **Response**:
 
 ```json
-[
-    {
-      "first": "string",
-      "last": "string",
-    }
-]
+  {
+    "id":"integer",
+    "first": "string",
+    "last": "string",
+  }
 ```
 
-### 1.2. Create User – `/user`
+
+### 1.2. Get User By id – `/users/user/{id}/` (GET)
+
+Retrieves the user with the specified id.
 
 **Response**:
 
 ```json
-[
-    {
-      "username": 
-    }
-]
+  {
+    "username":"string",
+    "first": "string",
+    "last": "string",
+  }
+```
+
+### 1.3. Create User – `/users` (POST)
+Creates a new user that must have a unique username and will be given a unique id. The user's first and last name are needed.
+
+**Request**:
+
+```json
+  {
+    "username":"string",
+    "first": "string",
+    "last": "string",
+  }
+```
+
+**Response**:
+```json
+  {
+    "success":"boolean"
+  }
 ```
 
 ## 2. Events
