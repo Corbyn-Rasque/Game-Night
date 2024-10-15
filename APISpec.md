@@ -172,8 +172,37 @@ Retrieves a specific match in a specific bracket with all the information about 
   ]
 }
 ```
+
 ## 4. Games
 
-### 4.1 Get Games `/games`
+### 4.1 Get Games `/games{?name,platform}` (GET)
+Finds all games that have the specified criteria. If no criteria is given all games will be shown.
 
-### 4.2 Set Games `/games`
+**Response**:
+```json
+{
+  "id":"integer",
+  "name":"string",
+}
+```
+
+### 4.2 Create Game Entry `/games` (POST)
+Creates a new game and gives it a unique id.
+
+**Request**:
+```json
+{
+  "name":"string",
+  "platform":"string",
+  "publisher":"string", 
+  "release_year":"integer",
+  "player_count":"integer",
+}
+```
+
+**Response**:
+```json
+{
+  "success":"boolean",
+}
+```
