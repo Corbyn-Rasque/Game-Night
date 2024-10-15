@@ -258,7 +258,7 @@ Adds an item in the database that can then be associated with an event by the it
 **Response**
 States 201
 
-### 5.3. Remove Object `/items/{item}` (DELETE)
+### 5.4. Remove Object `/items/{item}` (DELETE)
 Removes an item from the database if user wants to remove it from an event.
 
 **Response**

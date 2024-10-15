@@ -14,7 +14,7 @@ User Stories
 9. As a player of a specific game, I want to have similar games recommended so that I can find new games to play and enjoy.   
 10. As an on campus resident, I want to be in the loop of events going on in my community so that I can feel included in the community.  
 11. As a movie connoisseur, I want to find and host movie nights where people can vote to decide what movie to watch so that I have a better idea of what everyone prefers to watch.   
-12. As a Rizzy  individual i”m looking for some gyats in the vicinity to rizz up. On skibbidy. 
+12. As someone who runs an offline chess competition at a local college, I want a way to not only track who's won at each point in the bracket more easily, but I'd also like see previous brackets when putting together new brackets.
 
 Possible Exceptions  
 ---
