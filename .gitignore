@@ -1,3 +1,11 @@
 "CSC 365 Group Project Ideas.txt"
 "/CSC 365 Group Project Ideas.txt"
 .DS_Store
+.vercel
+/.venv
+.idea
+__pycache__
+/.env
+info.log
+.vscode
+.github
