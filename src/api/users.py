@@ -11,12 +11,17 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+class User(BaseModel):
+    username: str
+    first_name: str
+    last_name: str
+
 @router.post("/users")
-def create_user(username: str, first_name: str, last_name: str):
-    new_user = {
-        "username": username,
-        "first": first_name,
-        "last": last_name,
+def create_user(new_user: User):
+    new_user_dict = {
+        "username": new_user.username,
+        "first": new_user.first_name,
+        "last": new_user.last_name,
     }
     with db.engine.begin() as connection:
         id = connection.execute(sqlalchemy.text("""
@@ -24,7 +29,7 @@ def create_user(username: str, first_name: str, last_name: str):
                 VALUES (:username, :first, :last) 
                 ON CONFLICT (username) 
                 DO NOTHING 
-                RETURNING id"""), new_user).scalar_one_or_none()
+                RETURNING id"""), new_user_dict).scalar_one_or_none()
 
     if id is None:
         #try getting new user info again
