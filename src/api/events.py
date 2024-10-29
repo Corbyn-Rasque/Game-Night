@@ -10,8 +10,8 @@ from src import database as db
 # MAKE SURE TO USE UTC TIME!!!
 
 router = APIRouter(
-    prefix="/users",
-    tags=["users"],
+    prefix="/events",
+    tags=["events"],
     dependencies=[Depends(auth.get_api_key)],
 )
 @router.post("/events")
