@@ -1,24 +1,24 @@
 from fastapi import FastAPI, exceptions
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from src.api import carts, catalog, bottler, barrels, admin, info, inventory
+from src.api import events, users
 import json
 import logging
 import sys
 from starlette.middleware.cors import CORSMiddleware
 
 description = """
-Central Coast Cauldrons is the premier ecommerce site for all your alchemical desires.
+Game Night is THE app for organizing all of your gaming competitions & parties!
 """
 
 app = FastAPI(
-    title="Central Coast Cauldrons",
+    title="Game Night",
     description=description,
     version="0.0.1",
     terms_of_service="http://example.com/terms/",
     contact={
-        "name": "Lucas Pierce",
-        "email": "lupierce@calpoly.edu",
+        "name": "Corbyn Rasque",
+        "email": "ccrasque@calpoly.edu",
     },
 )
 
@@ -32,13 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(inventory.router)
-app.include_router(carts.router)
-app.include_router(catalog.router)
-app.include_router(bottler.router)
-app.include_router(barrels.router)
-app.include_router(admin.router)
-app.include_router(info.router)
+app.include_router(events.router)
+app.include_router(users.router)
 
 @app.exception_handler(exceptions.RequestValidationError)
 @app.exception_handler(ValidationError)
@@ -53,4 +48,4 @@ async def validation_exception_handler(request, exc):
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the Central Coast Cauldrons."}
+    return {"message": "Welcome to Game Night!"}
