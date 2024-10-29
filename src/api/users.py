@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-#from src.api import auth
+from src.api import auth
 
 import sqlalchemy
 from src import database as db
 
-# router = APIRouter(
-#     prefix="/users",
-#     tags=["users"],
-#     dependencies=[Depends(auth.get_api_key)],
-# )
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(auth.get_api_key)],
+)
 
-# @router.post("/users")
+@router.post("/users")
 def create_user(username: str, first_name: str, last_name: str):
     new_user = {
         "username": username,
@@ -32,7 +32,7 @@ def create_user(username: str, first_name: str, last_name: str):
     else:
         return {"user_id": id}
 
-# @router.get("/users/{username}/")
+@router.get("/users/{username}/")
 def get_user_by_username(username: str):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("""
@@ -49,7 +49,7 @@ def get_user_by_username(username: str):
         user_info = {"id": uid, "username": uname}
         return user_info
 
-#@router.get("/users/{user_ud}/")
+@router.get("/users/{user_ud}/")
 def get_user_by_id(user_id: int):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("""

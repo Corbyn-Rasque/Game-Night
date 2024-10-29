@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(events.router)
+# app.include_router(events.router)
 app.include_router(users.router)
 
 @app.exception_handler(exceptions.RequestValidationError)
