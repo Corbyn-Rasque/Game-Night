@@ -34,15 +34,17 @@ def add_game(game: Game):
 
 @router.get("/games/{name}")
 def get_game(name: str, platform: list = None):
-    get_game = text("""SELECT id 
-                       FROM games
-                       WHERE (name = :name AND platform = :platform) OR (name = :name AND platform != NULL)""")
+    get_game = """SELECT id 
+                  FROM games
+                  WHERE name = :name """
+    
+    with_platform = "AND platform = :platform" if platform else ""
     
     with db.engine.begin() as connection:
-        result = connection.execute(get_game, {"name": name, "platform": platform}).mappings().first()
+        result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
 
     return result if result else {}
 
 # if __name__ == '__main__':
-    # print(add_game(Game(name='Fortnite', platform='PC', publisher='Epic Games', release_year=2017, player_count=4)))
-    # print(get_game('Fortnite'))
+#     print(add_game(Game(name='Fortnite', platform='PC', publisher='Epic Games', release_year=2017, player_count=4)))
+#     print(get_game('Fortnite', 'XBOX'))
