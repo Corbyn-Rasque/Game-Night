@@ -28,7 +28,7 @@ def create_events(new_event: Event):
 
     with db.engine.begin() as connection:
         event_id = connection.execute(sqlalchemy.text("""
-                        INSERT INTO event 
+                        INSERT INTO events 
                         (name, date_time, type, max_attendees, locations) 
                         VALUES (:event_name, :time, :type, :max_attendees, :location) 
                         RETURNING id"""),dict(new_event)).scalar_one_or_none()
