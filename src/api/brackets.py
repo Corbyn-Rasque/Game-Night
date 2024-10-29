@@ -29,7 +29,7 @@ def create_bracket(new_bracket: Bracket):
         "cost": new_bracket.cost,
     }
 
-    with db.engine.connect() as connection:
+    with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("""
                     INSERT INTO brackets 
                     (name, date_time, game, capacity, cost) 
