@@ -1,8 +1,20 @@
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from src.api import auth
+
 import datetime
 import sqlalchemy
 from src import database as db
 
-#@router.post("/events")
+
+# MAKE SURE TO USE UTC TIME!!!
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(auth.get_api_key)],
+)
+@router.post("/events")
 def create_events(event_name: str, time: datetime.datetime, type: str, max_attendees: int, location: str):
 
     event_dict = {
@@ -22,8 +34,6 @@ def create_events(event_name: str, time: datetime.datetime, type: str, max_atten
 
         if event_id is None:
             # try getting new event info again
-            return {"user_id": None}
+            return {"event_id": None}
         else:
-            return {"user_id": event_id}
-
-print(create_events("Fortnite Tournament 1",datetime.datetime.now(), "Gaming",100, "52-112 Science"))
+            return {"event_id": event_id}
