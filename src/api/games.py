@@ -33,7 +33,7 @@ def add_game(game: Game):
 
 
 @router.get("/games/{name}")
-def get_game(name: str, platform: list = None):
+def get_game(name: str, platform = None):
     get_game = """SELECT id 
                   FROM games
                   WHERE name = :name """
@@ -47,4 +47,4 @@ def get_game(name: str, platform: list = None):
 
 # if __name__ == '__main__':
 #     print(add_game(Game(name='Fortnite', platform='PC', publisher='Epic Games', release_year=2017, player_count=4)))
-#     print(get_game('Fortnite', 'XBOX'))
+#     print(get_game('Fortnite', 'PC'))
