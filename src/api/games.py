@@ -18,7 +18,7 @@ class Game(BaseModel):
     release_year: int
     player_count: int
 
-@router.post("/games")
+@router.post("/")
 def add_game(game: Game):
     add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
                        VALUES (:name, :platform, :publisher, :release_year, :player_count)
@@ -32,7 +32,7 @@ def add_game(game: Game):
     return dict(zip(["id"], [response]))
 
 
-@router.get("/games/{name}")
+@router.get("/{name}")
 def get_game(name: str, platform = None):
     get_game = """SELECT id 
                   FROM games

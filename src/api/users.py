@@ -15,7 +15,7 @@ class User(BaseModel):
     first: str
     last: str
 
-@router.post("/users")
+@router.post("/")
 def create_user(user: User):
     add_user = text("""INSERT INTO users (username, first, last)
                        VALUES (:username, :first, :last)
@@ -42,12 +42,12 @@ def get_user(parameter):
     return result if result else {}
 
 
-@router.get("/users/{username}/")
+@router.get("/{username}/")
 def get_user_by_username(username: str):
     return get_user(username)
 
 
-@router.get("/users/{user_id}/")
+@router.get("/{user_id}/")
 def get_user_by_id(id: int):
    return get_user(id)
 
