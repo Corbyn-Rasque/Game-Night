@@ -18,7 +18,7 @@ class Bracket(BaseModel):
     capacity: int
     cost:float
 
-@router.post("/brackets")
+@router.post("/")
 def create_bracket(new_bracket: Bracket):
     bracket_dict = {
         "name": new_bracket.name,

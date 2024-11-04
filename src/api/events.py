@@ -21,7 +21,7 @@ class Event(BaseModel):
     max_attendees: int
     location: str
 
-@router.post("/events")
+@router.post("/")
 def create_events(new_event: Event):
 
     with db.engine.begin() as connection:
