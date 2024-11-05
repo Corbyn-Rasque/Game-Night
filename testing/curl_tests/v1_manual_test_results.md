@@ -12,10 +12,10 @@ Tyler 'Ninja' Blevins wants to go to a Fortnite tournament to scout the competit
 
 Now Tyler is ready to show off his skills. Unfortunately, he quickly found out he was not as good as he thought and turned towards content creation where he has become very successful.
 
-# Testing results
+### Testing results
 
 1. curl -X 'POST' \
-    'https://brackish.onrender.com/events/events' \
+    'https://brackish.onrender.com/events/' \
     -H 'accept: application/json' \
     -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
     -H 'Content-Type: application/json' \
@@ -23,6 +23,7 @@ Now Tyler is ready to show off his skills. Unfortunately, he quickly found out h
    "event_name": "Fortnite_Tournament_1",
    "time": "2024-10-15T06:12:23.468Z",
    "type": "Gaming",
+   "active": "Upcoming",
    "max_attendees": 100,
    "location": "Baker Building"
    }'
@@ -31,7 +32,7 @@ Now Tyler is ready to show off his skills. Unfortunately, he quickly found out h
    }
 
 3. curl -X 'POST' \
-    'https://brackish.onrender.com/brackets/brackets' \
+    'https://brackish.onrender.com/brackets/' \
     -H 'accept: application/json' \
     -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
     -H 'Content-Type: application/json' \
@@ -47,7 +48,7 @@ Now Tyler is ready to show off his skills. Unfortunately, he quickly found out h
    }
 
 5. curl -X 'POST' \
-    'https://brackish.onrender.com/games/games' \
+    'https://brackish.onrender.com/games/' \
     -H 'accept: application/json' \
     -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
     -H 'Content-Type: application/json' \
