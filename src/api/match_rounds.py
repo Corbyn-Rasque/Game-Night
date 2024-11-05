@@ -28,7 +28,7 @@ class Round(BaseModel):
     team_b_id: int
 
 @router.post("/")
-def create_match(new_round: Round):
+def create_round(new_round: Round):
     with db.engine.begin() as conn:
         round_id = conn.execute(sqlalchemy.text("""
                         INSERT INTO match_rounds (match_id,team_a_id,team_b_id) 
