@@ -42,6 +42,3 @@ def create_match(new_match:Match):
 
     return "OK"
 
-
-test_match = Match(bracket_id = 4, match_amount = 8)
-print(create_match(test_match))
