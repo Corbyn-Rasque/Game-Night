@@ -61,6 +61,6 @@ def cancel_event(event_id: int):
     return "OK"
 
 
-# event_id = create_event(Event(event_name='<3', time=datetime.datetime(2003, 2, 14), type='3=======D', active='any time', max_attendees=100, location='your mom'))
+# event_id = create_event(Event(event_name='Tetris Tournament', time=datetime.datetime(2024, 12, 1), type='Tetris', active='Upcoming', max_attendees=100, location='CSL Lab'))
 # print(get_event(event_id))
 # print(cancel_event(event_id))
