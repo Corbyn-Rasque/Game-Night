@@ -39,12 +39,19 @@ def request_item(event_id: int, item: Item):
 # Insert an individual contribution, or update if it's been added
 @router.post("/{event_id}/contributions/user/{username}")
 def contribute_item(event_id: int, username: str, item: Item):
+    check_item_exists = text('''SELECT TRUE
+                                FROM event_items
+                                WHERE (event_id, name) IN ((:event_id, :name))''')
+
     contribute = text('''INSERT INTO items_ledger (event_id, username, item_name, quantity, payment)
                          VALUES (:event_id, :username, :name, :quantity, :payment)
                          ON CONFLICT (event_id, username, item_name)
                          DO UPDATE SET (quantity, payment) = (EXCLUDED.quantity, EXCLUDED.payment)''')
 
     with db.engine.begin() as connection:
+        if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id}).scalar_one_or_none():
+            request_item(event_id, item)
+
         connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
 
     return "OK"
@@ -55,7 +62,7 @@ def contribute_item(event_id: int, username: str, item: Item):
 def contributions(event_id: int):
     get_contributions = text('''SELECT item_name, SUM(quantity)::INTEGER AS total, SUM(payment)::INTEGER AS contribution
                                 FROM items_ledger
-                                WHERE event_id = :event_id
+                                WHERE (event_id, deleted) IN ((:event_id, FALSE))
                                 GROUP BY item_name''')
     
     with db.engine.begin() as connection:
@@ -63,13 +70,12 @@ def contributions(event_id: int):
 
     return contributions
 
-
 # Get contributions from a single user
 @router.get("/{event_id}/contributions/user/{username}")
 def user_contribution(event_id: int, username: str):
     get_contributions = text('''SELECT item_name, SUM(quantity)::INTEGER AS total, SUM(payment)::INTEGER AS contribution
                                 FROM items_ledger
-                                WHERE (event_id, username) IN ((:event_id, :username))
+                                WHERE (event_id, username, deleted) IN ((:event_id, :username, FALSE))
                                 GROUP BY item_name''')
     
     with db.engine.begin() as connection:
@@ -93,7 +99,7 @@ def remove_user_contributions(event_id: int, username: str):
 
 # Delete all event contributions
 @router.delete("/{event_id}/contributions")
-def remove_event_contribution(event_id: int):
+def remove_all_event_contributions(event_id: int):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE event_id = :event_id''')
