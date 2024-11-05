@@ -20,22 +20,25 @@ class Bracket(BaseModel):
 
 @router.post("/")
 def create_bracket(new_bracket: Bracket):
-    bracket_dict = {
-        "name": new_bracket.name,
-        "date_time": new_bracket.date_time,
-        "game": new_bracket.game,
-        "capacity": new_bracket.capacity,
-        "cost": new_bracket.cost,
-    }
 
     with db.engine.begin() as connection:
         result = connection.execute(text("""
                     INSERT INTO brackets 
                     (name, date_time, game, capacity, cost) 
                     VALUES (:name, :date_time, :game, :capacity, :cost) 
-                    RETURNING id """), bracket_dict).scalar_one_or_none()
+                    RETURNING id """), dict(new_bracket)).scalar_one_or_none()
     if result is None:
         print("Bracket could not be created")
         return {"bracket_id": None}
     else:
         return {"bracket_id": result}
+
+@router.get("/{event_id}")
+def get_brackets(event_id: int):
+    with db.engine.begin() as connection:
+        result = connection.execute(text("""
+                    SELECT id, name, active, game, capacity 
+                    FROM brackets 
+                    WHERE event_id = :e_id"""),{"e_id":event_id}).mappings().all()
+
+    return result if result else []
