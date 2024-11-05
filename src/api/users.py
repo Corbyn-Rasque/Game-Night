@@ -42,12 +42,12 @@ def get_user(parameter):
     return result if result else {}
 
 
-@router.get("/{username}/")
+@router.get("/{username}")
 def get_user_by_username(username: str):
     return get_user(username)
 
 
-@router.get("/{user_id}/")
+@router.get("/{user_id}")
 def get_user_by_id(id: int):
    return get_user(id)
 
