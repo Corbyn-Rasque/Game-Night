@@ -26,7 +26,7 @@ class Event(BaseModel):
 
 
 # Create new event
-@router.post("/")
+@router.post("")
 def create_event(event: Event):
     create_event = text('''INSERT INTO events (name, date_time, active, type, max_attendees, location) 
                            VALUES (:event_name, :time, :active, :type, :max_attendees, :location)
@@ -39,20 +39,20 @@ def create_event(event: Event):
 
 
 # Get event details by event id
-@router.get("/")
-def get_event_by_id(event: int):
+@router.get("/{event_id}")
+def get_event_by_id(event_id: int):
     event_query = text('''SELECT name, type, active, location, max_attendees, date_time
                           FROM events
                           WHERE id = :event_id''')
 
     with db.engine.begin() as connection:
-        result = connection.execute(event_query, {"event_id": event}).mappings().all()
+        result = connection.execute(event_query, {"event_id": event_id}).mappings().all()
     
     return result if result else {}
 
 
 # Get event details by date
-@router.get("/")
+@router.get("")
 def get_event(name: str = None, date: datetime.datetime = None, range: int = 1):
     date = date if date else datetime.datetime.today()
 
@@ -77,7 +77,7 @@ def get_event(name: str = None, date: datetime.datetime = None, range: int = 1):
     return result if result else {}
 
 # Cancel an event
-@router.delete("/")
+@router.delete("/{event_id}")
 def cancel_event(event: int):
     cancel_event = text('''UPDATE events
                            SET cancelled = TRUE
