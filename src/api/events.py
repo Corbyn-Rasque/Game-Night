@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 import datetime
-import sqlalchemy
+from sqlalchemy import text
 from src import database as db
 
 # MAKE SURE TO USE UTC TIME!!!
@@ -21,31 +21,46 @@ class Event(BaseModel):
     max_attendees: int
     location: str
 
+
+# Create new event
 @router.post("/")
-def create_events(new_event: Event):
-    
+def create_event(new_event: Event):
+    create_event = text('''INSERT INTO events (name, date_time, active, type, max_attendees, location) 
+                           VALUES (:event_name, :time, :active, :type, :max_attendees, :location)
+                           RETURNING id''')
+
     with db.engine.begin() as connection:
-        event_id = connection.execute(sqlalchemy.text("""
-        INSERT INTO events 
-        (name, date_time, active, type, max_attendees, location) 
-        VALUES (:event_name, :time, :active, :type, :max_attendees, :location) 
-        RETURNING id
-        """), new_event.dict()).scalar_one_or_none()
+        event_id = connection.execute(create_event, dict(new_event)).scalar_one_or_none()
 
-    if event_id is None:
-        return {"event_id": None}
-    else:
-        return {"event_id": event_id}
+    return event_id if event_id else {}
 
+
+# Get event details by event id
 @router.get("/{event_id}")
 def get_event(event_id: int):
+    event_query = text('''SELECT name, type, active, location, max_attendees, date_time
+                        FROM events
+                        WHERE id = :event_id''')
 
     with db.engine.begin() as connection:
-        event_query = sqlalchemy.text("""
-            SELECT 
-            name, type, active, location, max_attendees, date_time
-            FROM events
-            WHERE id = :id """)
-        result = connection.execute(event_query, {"id": event_id}).mappings().all()
+        result = connection.execute(event_query, {"event_id": event_id}).mappings().all()
     
     return result
+
+
+# Cancel an event
+@router.post("/{event_id}")
+def cancel_event(event_id: int):
+    cancel_event = text('''UPDATE events
+                           SET cancelled = TRUE
+                           WHERE id = :event_id''')
+    
+    with db.engine.begin() as connection:
+        connection.execute(cancel_event, {"event_id": event_id})
+
+    return "OK"
+
+
+# event_id = create_event(Event(event_name='<3', time=datetime.datetime(2003, 2, 14), type='3=======D', active='any time', max_attendees=100, location='your mom'))
+# print(get_event(event_id))
+# print(cancel_event(event_id))
