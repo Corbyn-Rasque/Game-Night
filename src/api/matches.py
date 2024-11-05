@@ -11,3 +11,7 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+@router.get("/{bracket_id}")
+def get_matches(bracket_id: int):
+    with db.engine.begin() as conn:
+        return conn.execute()
