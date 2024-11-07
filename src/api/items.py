@@ -85,7 +85,7 @@ def user_contribution(event_id: int, username: str):
     return contributions
 
 
-@router.get("/{event_id}/requests/{item_name}")
+@router.delete("/{event_id}/requests/{item_name}")
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
                              SET deleted = TRUE
