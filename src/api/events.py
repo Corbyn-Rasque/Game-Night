@@ -11,16 +11,11 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
-# MAKE SURE TO USE UTC TIME!!!
-
-# Test date functionality with URL. Verify format that it's being received in works,
-# and that query parameters are also working properly, as well.
-
 class Event(BaseModel):
     name: str
     type: str
-    start: datetime.datetime  # Ensure this is UTC
-    stop: datetime.datetime
+    start: datetime.datetime    # UTC
+    stop: datetime.datetime     # UTC
     location: str
     max_attendees: int
 

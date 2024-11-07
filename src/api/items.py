@@ -85,22 +85,29 @@ def user_contribution(event_id: int, username: str):
     return contributions
 
 
-# @router.delete("")
-# def remove_item(event_id: int, username: str, item_name: str):
-#     remove_item = text('''UPDATE items_ledger
-#                           SET deleted = TRUE
-#                           WHERE (event_id, username, item_name) IN ((:event_id, :username))''')
-
-# Delete all contributions by an individual
-@router.delete("/{event_id}/contributions/{username}")
-def remove_user_contributions(event_id: int, username: str, item_name: str = None):
+# Delete single item contribution by an individual
+@router.delete("/{event_id}/contributions/{username}/{item_name}")
+def remove_user_contributions(event_id: int, username: str, item_name: str):
 
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
-                                   WHERE (event_id, username, item_name) IN ((:event_id, :username, item_name))''')
+                                   WHERE (event_id, username, item_name) IN ((:event_id, :username, :item_name))''')
     
     with db.engine.begin() as connection:
         connection.execute(remove_contributions, {'event_id': event_id, 'username': username, 'item_name': item_name})
+
+    return "OK"
+
+# Delete all contributions by an individual
+@router.delete("/{event_id}/contributions/{username}")
+def remove_user_contributions(event_id: int, username: str):
+
+    remove_contributions = text('''UPDATE items_ledger
+                                   SET deleted = TRUE
+                                   WHERE (event_id, username) IN ((:event_id, :username))''')
+    
+    with db.engine.begin() as connection:
+        connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
 
     return "OK"
 
