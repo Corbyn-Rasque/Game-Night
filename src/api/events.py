@@ -17,19 +17,19 @@ router = APIRouter(
 # and that query parameters are also working properly, as well.
 
 class Event(BaseModel):
-    event_name: str
-    time: datetime.datetime  # Ensure this is UTC
+    name: str
     type: str
-    active: str
-    max_attendees: int
+    start: datetime.datetime  # Ensure this is UTC
+    stop: datetime.datetime
     location: str
+    max_attendees: int
 
 
 # Create new event
 @router.post("")
 def create_event(event: Event):
-    create_event = text('''INSERT INTO events (name, date_time, active, type, max_attendees, location) 
-                           VALUES (:event_name, :time, :active, :type, :max_attendees, :location)
+    create_event = text('''INSERT INTO events (name, type, start, stop, location, max_attendees) 
+                           VALUES (:name, :type, :start, :stop, :location, :max_attendees)
                            RETURNING id''')
 
     with db.engine.begin() as connection:
@@ -37,11 +37,29 @@ def create_event(event: Event):
 
     return event_id if event_id else {}
 
+print(create_event(Event(name='New Years',type='Party', start=datetime.datetime(2025,1,1), stop=datetime.datetime(2025,1,2), location='Times Square', max_attendees=10000)))
+
+
+# Get event details by date
+@router.get("")
+def get_event(name: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
+    start = start if start else datetime.datetime.today()
+    stop = stop if stop else start + datetime.timedelta(days = 7)
+    
+    name_and_date_query = text('''SELECT name, type, location, max_attendees, start, stop
+                                  FROM events
+                                  WHERE (STRPOS(name, :name) > 0 OR :name is NULL) AND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))''')
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(name_and_date_query, {"name": name, "start": start, "stop": stop}).mappings().all()
+    
+    return result if result else {}
+
 
 # Get event details by event id
 @router.get("/{event_id}")
 def get_event_by_id(event_id: int):
-    event_query = text('''SELECT name, type, active, location, max_attendees, date_time
+    event_query = text('''SELECT name, type, start, stop, location, max_attendees
                           FROM events
                           WHERE id = :event_id''')
 
@@ -50,31 +68,6 @@ def get_event_by_id(event_id: int):
     
     return result if result else {}
 
-
-# Get event details by date
-@router.get("")
-def get_event(name: str = None, date: datetime.datetime = None, range: int = 1):
-    date = date if date else datetime.datetime.today()
-
-    start_date = date.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = start_date + datetime.timedelta(days=range)
-
-    name_query = text('''SELECT name, type, active, location, max_attendees, date_time
-                         FROM events 
-                         WHERE name = :name AND date_time > :start_date''')
-
-    date_query = text('''SELECT name, type, active, location, max_attendees, date_time
-                         FROM events
-                         WHERE date_time BETWEEN :start_date AND :end_date''')
-    
-    with db.engine.begin() as connection:
-        if name:
-            result = connection.execute(name_query, {"name": name, "start_date": start_date}).mappings().all()
-        else:    
-            result = connection.execute(date_query, {"start_date": start_date, "end_date": end_date}).mappings().all()
-        # result = connection.execute(event_query, {"year": date.year, "month": date.month, "day": date.day}).mappings().all()
-    
-    return result if result else {}
 
 # Cancel an event
 @router.delete("/{event_id}")
@@ -87,7 +80,6 @@ def cancel_event(event: int):
         connection.execute(cancel_event, {"event_id": event})
 
     return "OK"
-
 
 # event_id = create_event(Event(event_name='Tetris Tournament', time=datetime.datetime(2024, 12, 1), type='Tetris', active='Upcoming', max_attendees=100, location='CSL Lab'))
 # print(get_event(event_id))

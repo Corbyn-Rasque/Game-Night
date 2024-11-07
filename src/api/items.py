@@ -49,12 +49,13 @@ def contribute_item(event_id: int, username: str, item: Item):
                          DO UPDATE SET (quantity, payment) = (EXCLUDED.quantity, EXCLUDED.payment)''')
 
     with db.engine.begin() as connection:
-        if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id}).scalar_one_or_none():
+        if not connection.execute(check_item_exists, dict(item) | locals()).scalar_one_or_none():
             request_item(event_id, item)
 
         connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
 
     return "OK"
+
 
 
 # Get contributions overall, grouped by item
@@ -71,7 +72,7 @@ def contributions(event_id: int):
     return contributions
 
 # Get contributions from a single user
-@router.get("/{event_id}/contributions/user/{username}")
+@router.get("/{event_id}/contributions/{username}")
 def user_contribution(event_id: int, username: str):
     get_contributions = text('''SELECT item_name, SUM(quantity)::INTEGER AS total, SUM(payment)::INTEGER AS contribution
                                 FROM items_ledger
@@ -84,18 +85,24 @@ def user_contribution(event_id: int, username: str):
     return contributions
 
 
+# @router.delete("")
+# def remove_item(event_id: int, username: str, item_name: str):
+#     remove_item = text('''UPDATE items_ledger
+#                           SET deleted = TRUE
+#                           WHERE (event_id, username, item_name) IN ((:event_id, :username))''')
+
 # Delete all contributions by an individual
-@router.delete("/{event_id}/contributions/user/{username}")
-def remove_user_contributions(event_id: int, username: str):
+@router.delete("/{event_id}/contributions/{username}")
+def remove_user_contributions(event_id: int, username: str, item_name: str = None):
+
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
-                                   WHERE (event_id, username) IN ((:event_id, :username))''')
+                                   WHERE (event_id, username, item_name) IN ((:event_id, :username, item_name))''')
     
     with db.engine.begin() as connection:
-        connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
+        connection.execute(remove_contributions, {'event_id': event_id, 'username': username, 'item_name': item_name})
 
     return "OK"
-
 
 # Delete all event contributions
 @router.delete("/{event_id}/contributions")
