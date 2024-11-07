@@ -57,7 +57,6 @@ def contribute_item(event_id: int, username: str, item: Item):
     return "OK"
 
 
-
 # Get contributions overall, grouped by item
 @router.get("/{event_id}/contributions/")
 def contributions(event_id: int):
@@ -70,6 +69,7 @@ def contributions(event_id: int):
         contributions = connection.execute(get_contributions, {'event_id': event_id}).mappings().all()
 
     return contributions
+
 
 # Get contributions from a single user
 @router.get("/{event_id}/contributions/{username}")
@@ -85,10 +85,23 @@ def user_contribution(event_id: int, username: str):
     return contributions
 
 
+@router.get("/{event_id}/requests/{item_name}")
+def remove_request(event_id: int, item_name: str):
+    remove_request = text('''UPDATE event_items
+                             SET deleted = TRUE
+                             WHERE (event_id, name) IN ((:event_id, :item_name))
+                             ''')
+    
+    with db.engine.begin() as connection:
+        connection.execute(remove_request, {'event_id': event_id, 'item_name': item_name})
+    
+    return "OK"
+
+remove_request(16, 'RED_POTION_100')
+
 # Delete single item contribution by an individual
 @router.delete("/{event_id}/contributions/{username}/{item_name}")
 def remove_user_contributions(event_id: int, username: str, item_name: str):
-
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE (event_id, username, item_name) IN ((:event_id, :username, :item_name))''')
@@ -98,10 +111,10 @@ def remove_user_contributions(event_id: int, username: str, item_name: str):
 
     return "OK"
 
+
 # Delete all contributions by an individual
 @router.delete("/{event_id}/contributions/{username}")
 def remove_user_contributions(event_id: int, username: str):
-
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE (event_id, username) IN ((:event_id, :username))''')
@@ -110,6 +123,7 @@ def remove_user_contributions(event_id: int, username: str):
         connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
 
     return "OK"
+
 
 # Delete all event contributions
 @router.delete("/{event_id}/contributions")
@@ -122,6 +136,7 @@ def remove_all_event_contributions(event_id: int):
         connection.execute(remove_contributions, {'event_id': event_id})
 
     return "OK"
+
 
 # print(contribute_item(4, "CorbynR", Item(name = "Cheetoes", type = "Snacks", quantity = 10, payment = 500)))
 # print(request_item(4, Item(name = "Cheetoes", type = "Snacks", quantity = 5, payment = 500)))
