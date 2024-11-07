@@ -32,21 +32,24 @@ def create_event(event: Event):
 
     return event_id if event_id else {}
 
-print(create_event(Event(name='New Years',type='Party', start=datetime.datetime(2025,1,1), stop=datetime.datetime(2025,1,2), location='Times Square', max_attendees=10000)))
-
 
 # Get event details by date
 @router.get("")
-def get_event(name: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
-    start = start if start else datetime.datetime.today()
-    stop = stop if stop else start + datetime.timedelta(days = 7)
+def get_event(name: str = None, username: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
     
-    name_and_date_query = text('''SELECT name, type, location, max_attendees, start, stop
-                                  FROM events
-                                  WHERE (STRPOS(name, :name) > 0 OR :name is NULL) AND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))''')
-    
+    name_and_date_query = '''SELECT name, type, location, max_attendees, start, stop
+                             FROM events
+                             WHERE (STRPOS(name, :name) > 0 OR :name is NULL)\n'''
+
+    # If there is a start date or a stop date, check -INF -> stop or start -> INF
+    # If both start & stop are present, search between dates inclusive.
+    if bool(start) ^ bool(stop):
+        name_and_date_query += 'AND ((start >= :start OR stop >= :start) OR (start <= :stop OR stop <= :stop))'
+    else:
+        name_and_date_query += 'AND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))'
+
     with db.engine.begin() as connection:
-        result = connection.execute(name_and_date_query, {"name": name, "start": start, "stop": stop}).mappings().all()
+        result = connection.execute(text(name_and_date_query), {"name": name, "start": start, "stop": stop}).mappings().all()
     
     return result if result else {}
 

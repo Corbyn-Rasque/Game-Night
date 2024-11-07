@@ -49,7 +49,7 @@ def contribute_item(event_id: int, username: str, item: Item):
                          DO UPDATE SET (quantity, payment) = (EXCLUDED.quantity, EXCLUDED.payment)''')
 
     with db.engine.begin() as connection:
-        if not connection.execute(check_item_exists, dict(item) | locals()).scalar_one_or_none():
+        if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id, 'username': username}).scalar_one_or_none():
             request_item(event_id, item)
 
         connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
@@ -89,15 +89,13 @@ def user_contribution(event_id: int, username: str):
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
                              SET deleted = TRUE
-                             WHERE (event_id, name) IN ((:event_id, :item_name))
-                             ''')
+                             WHERE (event_id, name) IN ((:event_id, :item_name))''')
     
     with db.engine.begin() as connection:
         connection.execute(remove_request, {'event_id': event_id, 'item_name': item_name})
     
     return "OK"
 
-remove_request(16, 'RED_POTION_100')
 
 # Delete single item contribution by an individual
 @router.delete("/{event_id}/contributions/{username}/{item_name}")
