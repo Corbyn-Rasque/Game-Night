@@ -4,6 +4,7 @@ from src.api import auth
 import datetime
 from sqlalchemy import text
 from src import database as db
+from src.api import users as users
 
 router = APIRouter(
     prefix="/events",
@@ -35,21 +36,31 @@ def create_event(event: Event):
 
 # Get event details by date
 @router.get("")
-def get_event(name: str = None, username: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
-    
-    name_and_date_query = '''SELECT name, type, location, max_attendees, start, stop
-                             FROM events
-                             WHERE (STRPOS(name, :name) > 0 OR :name is NULL)\n'''
+def get_event(name: str = None, username: str = None, type: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
+    event_query = '''SELECT name, type, location, max_attendees, start, stop
+                     FROM events
+                     WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
+                        AND (STRPOS(type, :type) > 0 OR :type is NULL)
+                     '''
 
-    # If there is a start date or a stop date, check -INF -> stop or start -> INF
-    # If both start & stop are present, search between dates inclusive.
+    username_query = '''SELECT name, type, location, max_attendees, start, stop
+                        FROM events
+                        JOIN user_events ON user_events.event_id = id
+                        JOIN users ON users.id = user_events.user_id
+                        WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
+                            AND (STRPOS(type, :type) > 0 OR :type is NULL)
+                            AND users.username = :username'''
+
+    if username: event_query = username_query
+
     if bool(start) ^ bool(stop):
-        name_and_date_query += 'AND ((start >= :start OR stop >= :start) OR (start <= :stop OR stop <= :stop))'
-    else:
-        name_and_date_query += 'AND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))'
+        event_query += '\nAND ((start >= :start OR stop >= :start) OR (start <= :stop OR stop <= :stop))'
+    elif bool(start) and bool(stop):
+        event_query += '\nAND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))'
 
     with db.engine.begin() as connection:
-        result = connection.execute(text(name_and_date_query), {"name": name, "start": start, "stop": stop}).mappings().all()
+        result = connection.execute(text(event_query),
+                                    {"name": name, "username": username, "type": type, "start": start, "stop": stop}).mappings().all()
     
     return result if result else {}
 
@@ -65,6 +76,22 @@ def get_event_by_id(event_id: int):
         result = connection.execute(event_query, {"event_id": event_id}).mappings().all()
     
     return result if result else {}
+
+
+@router.get("/{event_id}/users")
+def get_event_users(event_id: int):
+    user_query = text('''SELECT users.username AS name, users.first, users.last
+                         FROM events
+                         JOIN user_events ON user_events.event_id = id
+                         JOIN users ON users.id = user_events.user_id
+                         WHERE event_id = :event_id''')
+
+    with db.engine.begin() as connection:
+        results = connection.execute(user_query, {"event_id": event_id}).mappings().all()
+
+    results = [users.User(**user) for user in results]
+
+    return results
 
 
 # Cancel an event

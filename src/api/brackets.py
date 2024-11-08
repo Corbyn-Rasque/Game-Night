@@ -33,7 +33,7 @@ def create_bracket(new_bracket: Bracket):
     else:
         return {"bracket_id": result}
 
-print(create_bracket(Bracket(name="Attendees", date_time=datetime.datetime(2024,11,16), game = "Dinner", capacity=70, cost=0)))
+# print(create_bracket(Bracket(name="Attendees", date_time=datetime.datetime(2024,11,16), game = "Dinner", capacity=70, cost=0)))
 
 @router.get("/{event_id}")
 def get_brackets(event_id: int):
