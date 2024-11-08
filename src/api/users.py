@@ -60,9 +60,6 @@ def get_user_events(username: str):
     return result if result else {}
 
 
-print(get_user_events('mangoswirl'))
-
-
 @router.get("/{user_id}")
 def get_user_by_id(id: int):
    return get_user(id)
