@@ -188,10 +188,29 @@ Now Mang0 knows he needs to practice playing against Zain's character, Marth. He
 
 ## Testing results
 
-### 
+### Previous Events By Username
 
-###
+#### Request
+```
+curl -X 'GET' \
+'https://brackish.onrender.com/users/mangoswirl/events' \
+-H 'accept: application/json' \
+-H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d'
+```
 
-###
+#### Response
+```
+{
+"id": 27,
+"name": "Super Smash Tournament",
+"type": "Game",
+"location": "San Jose",
+"max_attendees": 1500,
+"start": "2024-02-14T12:00:00",
+"stop": null
+}
+```
 
-###
+### Get Bracket By ID (TBD)
+
+### Get Match By Bracket (TBD)
