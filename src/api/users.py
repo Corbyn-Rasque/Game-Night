@@ -46,6 +46,22 @@ def get_user(parameter):
 def get_user_by_username(username: str):
     return get_user(username)
 
+@router.get("/{username}/events")
+def get_user_events(username: str):
+    user_events = text('''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
+                          FROM event_attendance
+                          JOIN events ON events.id = event_attendance.event_id
+                          JOIN users ON users.id = event_attendance.user_id
+                          WHERE users.username = :username''')
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(user_events, {"username": username}).mappings().first()
+
+    return result if result else {}
+
+
+print(get_user_events('mangoswirl'))
+
 
 @router.get("/{user_id}")
 def get_user_by_id(id: int):

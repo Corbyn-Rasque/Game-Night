@@ -37,13 +37,13 @@ def create_event(event: Event):
 # Get event details by date
 @router.get("")
 def get_event(name: str = None, username: str = None, type: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
-    event_query = '''SELECT name, type, location, max_attendees, start, stop
+    event_query = '''SELECT id, name, type, location, max_attendees, start, stop
                      FROM events
                      WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
                         AND (STRPOS(type, :type) > 0 OR :type is NULL)
                      '''
 
-    username_query = '''SELECT name, type, location, max_attendees, start, stop
+    username_query = '''SELECT id, name, type, location, max_attendees, start, stop
                         FROM events
                         JOIN user_events ON user_events.event_id = id
                         JOIN users ON users.id = user_events.user_id
@@ -68,7 +68,7 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
 # Get event details by event id
 @router.get("/{event_id}")
 def get_event_by_id(event_id: int):
-    event_query = text('''SELECT name, type, start, stop, location, max_attendees
+    event_query = text('''SELECT id, name, type, start, stop, location, max_attendees
                           FROM events
                           WHERE id = :event_id''')
 
