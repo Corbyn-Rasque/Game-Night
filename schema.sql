@@ -85,6 +85,18 @@ create table
     constraint brackets_game_id_fkey foreign key (game_id) references games (id)
 ) tablespace pg_default;
 
+create or replace function add_initial_matches()
+returns trigger
+language plpgsql
+as $$
+begin
+  insert into matches (bracket_id)
+  select (new.id)
+  from generate_series(1, ceil(new.num_players::float / new.match_size::float)::integer);
+  return new;
+end;
+$$;
+
 create trigger generate_initial_matches
 after insert on brackets for each row
 execute function add_initial_matches ();
@@ -131,6 +143,31 @@ create table
     constraint match_players_match_id_fkey foreign key (match_id) references matches (id) on delete cascade,
     constraint match_players_player_id_fkey foreign key (player_id) references users (id)
   ) tablespace pg_default;
+
+create or replace function enforce_match_size_limit()
+returns trigger
+language plpgsql
+as $$
+declare
+  current INT;
+  allowed INT;
+begin
+  SELECT COUNT(*)
+  INTO current
+  FROM match_players
+  WHERE match_id = NEW.match_id;
+
+  SELECT brackets.match_size
+  INTO allowed
+  FROM match_players
+  JOIN matches ON matches.id = NEW.match_id
+  JOIN brackets ON brackets.id = matches.bracket_id;
+
+  IF current >= allowed THEN
+    raise exception 'Cannot insert: match already full';
+  END IF;
+end;
+$$;
 
 create trigger check_match_size_limit before insert on match_players for each row
 execute function enforce_match_size_limit ();
