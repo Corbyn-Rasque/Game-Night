@@ -40,8 +40,7 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
     event_query = '''SELECT id, name, type, location, max_attendees, start, stop
                      FROM events
                      WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
-                        AND (STRPOS(type, :type) > 0 OR :type is NULL)
-                     '''
+                        AND (STRPOS(type, :type) > 0 OR :type is NULL)'''
 
     username_query = '''SELECT id, name, type, location, max_attendees, start, stop
                         FROM events

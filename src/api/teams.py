@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 import datetime
-import sqlalchemy
+from sqlalchemy import text
 from src import database as db
 
 router = APIRouter(
@@ -11,32 +11,45 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
-@router.get("/{bracket_id}")
-def get_teams(bracket_id: int):
-    with db.engine.begin() as conn:
-        result = conn.execute(sqlalchemy.text("""
-                    SELECT teams.id as team_id 
-                    FROM teams 
-                    WHERE bracket_id = :b_id"""), {"b_id": bracket_id}).mappings().all()
-
-    return result if result else []
-
-
 class Team(BaseModel):
-    bracket_id: int
-    team_name:str
+    id: int
+    name:str
 
-@router.post("/")
-def create_team(new_team: Team):
-    with db.engine.begin() as conn:
-        team_id = conn.execute(sqlalchemy.text("""
-                    INSERT INTO teams (bracket_id, team_name) 
-                    VALUES (:bracket_id,:team_name) 
-                    ON CONFLICT (team_name) DO NOTHING
-                    RETURNING id"""),dict(new_team)).scalar_one_or_none()
+class Team_Player(BaseModel):
+    team_id: int
+    player_id: int
 
-    if team_id is None:
-        # try getting new event info again
-        return {"team_id": None}
-    else:
-        return {"team_id": team_id}
+
+@router.get("/{team_id}/players")
+def get_team_players(team_id: int):
+    query_players = text('''SELECT player_id
+                            FROM team_players
+                            WHERE team_id = :team_id''')
+    
+    with db.engine.begin() as connection:
+        results = connection.execute(query_players, {"team_id": team_id}).mappings().all()
+
+    return results
+
+
+@router.post("")
+def create_team(name: str):
+    add_team = text('''INSERT INTO teams (name)
+                       VALUES (:name)
+                       RETURNING id''')
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(add_team, {"name": name}).mappings().all()
+
+    return result
+
+
+@router.delete("/{team_id}")
+def remove_team(team_id: int):
+    remove_team = text('''DELETE FROM teams
+                          WHERE id = :team_id''')
+    
+    with db.engine.begin() as connection:
+        connection.execute(remove_team, {"team_id": team_id})
+
+    return "OK"

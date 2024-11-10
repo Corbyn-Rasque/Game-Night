@@ -17,11 +17,10 @@ class User(BaseModel):
 
 @router.post("/")
 def create_user(user: User):
-    add_user = text("""INSERT INTO users (username, first, last)
+    add_user = text('''INSERT INTO users (username, first, last)
                        VALUES (:username, :first, :last)
                        ON CONFLICT (username) DO NOTHING
-                       RETURNING id
-                       """)
+                       RETURNING id''')
 
     with db.engine.begin() as connection:
         response = connection.execute(add_user, dict(user)).scalar_one_or_none()
@@ -32,9 +31,9 @@ def get_user(parameter):
     id = parameter if isinstance(parameter, int) else None
     username = parameter if isinstance(parameter, str) else None
 
-    get_user = text("""SELECT id, username
+    get_user = text('''SELECT id, username
                        FROM users 
-                       WHERE id = :id OR username = :username""")
+                       WHERE id = :id OR username = :username''')
 
     with db.engine.begin() as connection:
         result = connection.execute(get_user, {"id": id, "username": username}).mappings().first()
@@ -69,24 +68,3 @@ def get_user_by_id(id: int):
 #     print(create_user(User(username = 'CorbynR', first = 'Corbyn', last = 'Rasque')))
 #     print(get_user_by_username('Corbyn'))
 #     print(get_user_by_id(0))
-
-
-    # get_user = text("""SELECT id, username 
-    #                    FROM users 
-    #                    WHERE username = :username""")
-
-    # with db.engine.begin() as connection:
-    #     result = connection.execute(get_user, {"username": username}).first()
-
-
-
-    # return dict(zip(["id", "username"], [result]))
-
-        # get_id = text("""SELECT id, username 
-    #                  FROM users 
-    #                  WHERE id = :id""")
-
-    # with db.engine.begin() as connection:
-    #     result = connection.execute(get_id, {"user_id": id}).first()
-
-    # return dict(zip(["id", "username"], [result]))
