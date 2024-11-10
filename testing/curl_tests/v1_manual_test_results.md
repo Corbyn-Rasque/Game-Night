@@ -1,6 +1,4 @@
-# Example Workflow
-
-## Tyler 'Ninja' Blevins as a gaming event host
+# Tyler 'Ninja' Blevins as a gaming event host
 
 Tyler 'Ninja' Blevins wants to go to a Fortnite tournament to scout the competition and confirm that he has world class skills. He first checks to see if there is any upcoming tournaments.(GET events/?active=upcoming&game=fortnite). He sees that there isn't any going on at the moment, so decides to make a new event and add a new category to our games list.
 
@@ -12,53 +10,72 @@ Tyler 'Ninja' Blevins wants to go to a Fortnite tournament to scout the competit
 
 Now Tyler is ready to show off his skills. Unfortunately, he quickly found out he was not as good as he thought and turned towards content creation where he has become very successful.
 
-### Testing results
+## Testing results
 
-1. curl -X 'POST' \
-    'https://brackish.onrender.com/events/' \
-    -H 'accept: application/json' \
-    -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
-    -H 'Content-Type: application/json' \
-    -d '{
-   "event_name": "Fortnite_Tournament_1",
-   "time": "2024-10-15T06:12:23.468Z",
-   "type": "Gaming",
-   "active": "Upcoming",
-   "max_attendees": 100,
-   "location": "Baker Building"
-   }'
-2. {
-   "event_id": 2
-   }
+### Event Creation
 
-3. curl -X 'POST' \
-    'https://brackish.onrender.com/brackets/' \
-    -H 'accept: application/json' \
-    -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
-    -H 'Content-Type: application/json' \
-    -d '{
-   "name": "Fortnite_Bracket_1",
-   "date_time": "2024-10-15T06:12:13.172Z",
-   "game": "Fortnite",
-   "capacity": 100,
-   "cost": 0
-   }'
-4. {
-   "bracket_id": 3
-   }
+#### Request
+```
+curl -X 'POST' \
+   'https://brackish.onrender.com/events/' \
+   -H 'accept: application/json' \
+   -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
+   -H 'Content-Type: application/json' \
+   -d '{
+"event_name": "Fortnite_Tournament_1",
+"time": "2024-10-15T06:12:23.468Z",
+"type": "Gaming",
+"active": "Upcoming",
+"max_attendees": 100,
+"location": "Baker Building"
+}'
+```
 
-5. curl -X 'POST' \
-    'https://brackish.onrender.com/games/' \
-    -H 'accept: application/json' \
-    -H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
-    -H 'Content-Type: application/json' \
-    -d '{
-   "name": "Fortnite",
-   "platform": "XBOX",
-   "publisher": "Epic Games",
-   "release_year": 2015,
-   "player_count": 100
-   }'
-6. {
-   "id": 6
-   }
+#### Response
+```
+{ "event_id": 2 }
+```
+
+
+### Post Bracket
+
+#### Request
+```
+curl -X 'POST' \
+'https://brackish.onrender.com/brackets/' \
+-H 'accept: application/json' \
+-H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
+-H 'Content-Type: application/json' \
+-d '{
+"name": "Fortnite_Bracket_1",
+"date_time": "2024-10-15T06:12:13.172Z",
+"game": "Fortnite",
+"capacity": 100,
+"cost": 0
+}'
+```
+
+#### Response
+{ "bracket_id": 3 }
+
+### Create Game
+
+#### Request
+```
+curl -X 'POST' \
+'https://brackish.onrender.com/games/' \
+-H 'accept: application/json' \
+-H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d' \
+-H 'Content-Type: application/json' \
+-d '{
+"name": "Fortnite",
+"platform": "XBOX",
+"publisher": "Epic Games",
+"release_year": 2015,
+"player_count": 100
+}'
+```
+
+#### Response
+```
+{ "id": 6 }

@@ -48,9 +48,9 @@ curl -X 'POST' \
 -d '{
 "name": "Attendees",
 "date_time": "2024-11-16T16:00:00Z",
-"game": "Dinner",
-"capacity": 70,
-"cost": 0
+"game_id": NULL,
+"match_size": 70,
+"num_players": 70
 }'
 ```
 
@@ -211,6 +211,48 @@ curl -X 'GET' \
 }
 ```
 
-### Get Bracket By ID (TBD)
+### Get Bracket By ID
 
-### Get Match By Bracket (TBD)
+#### Request
+```
+curl -X 'GET' \
+'https://brackish.onrender.com/events27/brackets' \
+-H 'accept: application/json' \
+-H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d'
+```
+
+#### Response
+```
+[{
+"id": 4,
+"name": "Northern California",
+"event_id": 27,
+"game_id": 7,
+"time": "2024-11-16",
+"match_size": 2,
+"num_players": 4
+}]
+```
+
+### Get Match By Bracket ID
+
+#### Request
+```
+curl -X 'GET' \
+'https://brackish.onrender.com/brackets/4/matches' \
+-H 'accept: application/json' \
+-H 'access_token: f616b86c09e0ee3f524a5bf4c9c6109d'
+```
+
+#### Response
+```
+[{
+"id": 4
+},
+{
+"id": 3
+},
+{
+"id": 2
+}]
+```

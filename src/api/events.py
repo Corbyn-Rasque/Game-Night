@@ -95,7 +95,7 @@ def get_event_users(event_id: int):
 
 @router.get("{event_id}/brackets")
 def get_event_brackets(event_id: int):
-    bracket_query = text('''SELECT name, event_id, game_id, time, match_size, num_players
+    bracket_query = text('''SELECT id, name, event_id, game_id, time, match_size, num_players
                             FROM brackets
                             WHERE event_id = :event_id''')
     
