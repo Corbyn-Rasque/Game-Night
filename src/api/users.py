@@ -11,7 +11,7 @@ router = APIRouter(
 )
 
 class User(BaseModel):
-    name: str
+    username: str
     first: str
     last: str
 
