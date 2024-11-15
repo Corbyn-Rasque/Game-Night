@@ -39,7 +39,7 @@ def create_team(name: str):
                        RETURNING id''')
     
     with db.engine.begin() as connection:
-        result = connection.execute(add_team, {"name": name}).mappings().all()
+        result = connection.execute(add_team, {"name": name}).mappings().one()
 
     return result
 
@@ -53,3 +53,5 @@ def remove_team(team_id: int):
         connection.execute(remove_team, {"team_id": team_id})
 
     return "OK"
+
+print(create_team("my favorite team :D"))
