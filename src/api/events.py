@@ -106,7 +106,7 @@ def get_event_brackets(event_id: int):
 
 
 # Cancel an event
-@router.delete("/{event_id}")
+@router.patch("/{event_id}")
 def cancel_event(event: int):
     cancel_event = text('''UPDATE events
                            SET cancelled = TRUE
