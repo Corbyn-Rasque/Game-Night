@@ -1,0 +1,12 @@
+Code Review Comments - Ivana Thomas #13
+
+- Despite use of ‘ON CONFLICT’, I was able to insert the exact same Fortnite entry into 'games', 
+with the same platform, publisher, release year, and player count 4 times and got 4 separate ids.
+- Fixed. Forced uniqueness on game_name and platform
+
+- canceling an event, the event still shows up in @GET/events/{event_id} and looks the same as 
+an active event. If a boolean is going to be used to handle cancellation, it would be good to return 
+that to the user as well.
+- We want to keep the previous events on this table for lookups. However, it is important to know the 
+status of an event, so we will provide that information. 
+
