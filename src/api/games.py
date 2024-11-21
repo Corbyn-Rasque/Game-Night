@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
-import datetime
 from sqlalchemy import text
 from src import database as db
 

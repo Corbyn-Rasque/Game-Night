@@ -11,6 +11,7 @@ status of an event, so we will provide that information.
 insert a negative quantity to simplify any aggregation that might be needed at some point?
 
 • For /events upon event creation, a more detailed response (so we know that the response is the event id).
+- Correct. Also, realized we weren't following the API Spec. 
 
 • In @POST/brackets, the API Spec doesn’t match the request body in the deployed url. Event_id is clear, but game_id 
 is a little bit confusing*.
@@ -30,5 +31,6 @@ more checking could be of use here, or make another item mandatory?
 additional measure might be nice too!
 
 • Super minor: datetime is imported into games, but not used
+- deleted 
 
 
