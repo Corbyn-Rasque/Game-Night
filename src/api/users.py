@@ -4,6 +4,7 @@ from src.api import auth
 from sqlalchemy import text
 from src import database as db
 from sqlalchemy.exc import SQLAlchemyError
+from typing import Optional
 
 
 
@@ -33,7 +34,6 @@ def create_user(user: User):
 def get_user(parameter):
     id = parameter if isinstance(parameter, int) else None
     username = parameter if isinstance(parameter, str) else None
-
     get_user = text('''SELECT id, username
                        FROM users 
                        WHERE id = :id OR username = :username''')
@@ -44,9 +44,14 @@ def get_user(parameter):
     return result if result else {}
 
 
-@router.get("/{username}")
-def get_user_by_username(username: str):
-    return get_user(username)
+@router.get("/")
+def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
+    if username:
+        return get_user (username)
+    elif id:
+        return get_user (id)
+    else:
+        return {}
 
 @router.get("/{username}/events")
 def get_user_events(username: str):
@@ -60,11 +65,6 @@ def get_user_events(username: str):
         result = connection.execute(user_events, {"username": username}).mappings().first()
 
     return result if result else {}
-
-
-@router.get("/{user_id}")
-def get_user_by_id(id: int):
-   return get_user(id)
 
 
 
