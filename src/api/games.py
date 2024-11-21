@@ -22,7 +22,7 @@ class Game(BaseModel):
 def add_game(game: Game):
     add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
                        VALUES (:name, :platform, :publisher, :release_year, :player_count)
-                       ON CONFLICT DO NOTHING
+                       ON CONFLICT(name, platform) DO NOTHING
                        RETURNING id
                        """)
 

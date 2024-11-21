@@ -65,9 +65,10 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
 
 
 # Get event details by event id
-@router.get("/{event_id}")
+@router.get("/{event_id}/info")
 def get_event_by_id(event_id: int):
-    event_query = text('''SELECT id, name, type, start, stop, location, max_attendees
+    """returns detailed information about a specific event """
+    event_query = text('''SELECT id, name, type, start, stop, location, max_attendees, cancelled
                           FROM events
                           WHERE id = :event_id''')
 

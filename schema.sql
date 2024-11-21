@@ -60,16 +60,10 @@ create table
     publisher text not null,
     release_year bigint not null,
     player_count bigint not null,
-    constraint games_pkey primary key (
-      id,
-      name,
-      platform,
-      publisher,
-      release_year,
-      player_count
-    ),
+    constraint games_pkey primary key (platform, name),
     constraint games_id_key unique (id)
   ) tablespace pg_default;
+  
 
 create table
   public.brackets (

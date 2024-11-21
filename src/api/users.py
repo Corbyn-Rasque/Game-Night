@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 from sqlalchemy import text
 from src import database as db
+from sqlalchemy.exc import SQLAlchemyError
+
+
 
 router = APIRouter(
     prefix="/users",
@@ -62,6 +65,8 @@ def get_user_events(username: str):
 @router.get("/{user_id}")
 def get_user_by_id(id: int):
    return get_user(id)
+
+
 
     
 # if __name__ == '__main__':
