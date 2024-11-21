@@ -1,7 +1,7 @@
 from fastapi import FastAPI, exceptions
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from src.api import brackets, events, games, items, teams, users
+from src.api import brackets, events, games, items, teams, users, social
 import json
 import logging
 import sys
@@ -38,6 +38,7 @@ app.include_router(games.router)
 app.include_router(items.router)
 app.include_router(teams.router)
 app.include_router(users.router)
+app.include_router(social.router)
 
 @app.exception_handler(exceptions.RequestValidationError)
 @app.exception_handler(ValidationError)
