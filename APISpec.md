@@ -85,8 +85,8 @@ Creates a new event in the database.
 ```json
 
 {
-  "success":"boolean"
-}~
+  "event_id" : "int"
+}
 ```
 
 ## 3. Brackets

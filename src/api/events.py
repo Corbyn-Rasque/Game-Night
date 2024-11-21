@@ -31,7 +31,7 @@ def create_event(event: Event):
     with db.engine.begin() as connection:
         event_id = connection.execute(create_event, dict(event)).scalar_one_or_none()
 
-    return event_id if event_id else {}
+    return {"event_id" : event_id} if event_id else {}
 
 
 # Get event details by date
