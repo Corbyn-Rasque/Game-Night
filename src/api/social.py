@@ -93,21 +93,3 @@ def friend_events(user_id : int):
         raise HTTPException(status_code=400, detail="Error retrieving friend events")
     print(f"Retrieving friend events for user id {user_id}")
     return(events)
-
-"""SELECT 
-    user_friends.user_id AS user, 
-    friend_id as friend, 
-    username, 
-    type, name, location, max_attendees, start, stop,
-    COUNT(event_attendance.user_id) OVER (PARTITION BY event_id) as count
-  from user_friends
-  INNER JOIN users
-    ON user_friends.friend_id = users.id
-  INNER JOIN event_attendance
-    ON event_attendance.user_id = user_friends.user_id
-  INNER JOIN events
-    ON events.id = event_attendance.event_id
-  WHERE 
-    cancelled = false AND
-    user_friends.user_id = 50
-  ORDER BY count DESC;"""
