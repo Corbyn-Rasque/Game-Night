@@ -55,6 +55,7 @@ def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
 
 @router.get("/{username}/events")
 def get_user_events(username: str):
+    """ returns all events a user registered to participate in"""
     user_events = text('''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
                           FROM event_attendance
                           JOIN events ON events.id = event_attendance.event_id
@@ -62,9 +63,9 @@ def get_user_events(username: str):
                           WHERE users.username = :username''')
     
     with db.engine.begin() as connection:
-        result = connection.execute(user_events, {"username": username}).mappings().first()
+        result = connection.execute(user_events, {"username": username}).mappings().all()
 
-    return result if result else {}
+    return result
 
 
 
