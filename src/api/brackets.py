@@ -134,3 +134,44 @@ def remove_bracket(bracket_id: int):
         connection.execute(remove_bracket, {"bracket_id": bracket_id})
 
     return "OK"
+
+class SeedBounds(BaseModel):
+    beginner_limit: int
+
+@router.post("/{bracket_id}/seeding")
+def seed_bracket(bracket_id: int, bounds: SeedBounds):
+    if bounds.beginner_limit <= 0:
+        bounds.beginner_limit = 1
+    bounds_dict = dict(bounds)
+    player_winrates = text('''WITH bracket_players as (
+                                    SELECT DISTINCT player_id
+                                    FROM match_players
+                                    JOIN matches ON matches.id = match_players.match_id
+                                    WHERE bracket_id = :bracket_id
+                                ),
+                                scored_players as (
+                                    SELECT player_id, (:beginner_limit*sum(score)+(count(1)))/(1+(:beginner_limit*(count(1)))) as seed_score 
+                                    FROM bracket_players
+                                    JOIN match_players using(player_id)
+                                    GROUP BY player_id
+                                    order by seed_score desc
+                                )
+                                SELECT :bracket_id as bracket_id, player_id,
+                                ROW_NUMBER() over (order by seed_score desc) as seed
+                                FROM scored_players
+                                ''')
+
+    insertion = text('''INSERT INTO bracket_seeds (bracket_id, player_id, seed)
+                        VALUES (:bracket_id, :player_id, :seed)
+                        ON CONFLICT (bracket_id, player_id) DO
+                            UPDATE SET seed = :seed
+                        RETURNING bracket_id, player_id, seed''')
+
+    with db.engine.begin() as connection:
+        result = connection.execute(player_winrates, {"bracket_id": bracket_id} | bounds_dict).mappings().all()
+        connection.execute(insertion, result)
+    print(result)
+    return result
+
+bounds = SeedBounds(beginner_limit=0)
+seed_bracket(4,bounds)
