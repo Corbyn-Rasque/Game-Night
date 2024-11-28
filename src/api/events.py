@@ -42,25 +42,27 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
                      WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
                         AND (STRPOS(type, :type) > 0 OR :type is NULL)'''
 
-    username_query = '''SELECT id, name, type, location, max_attendees, start, stop
+    username_query = '''SELECT events.id, name, type, location, max_attendees, start, stop
                         FROM events
                         JOIN user_events ON user_events.event_id = id
                         JOIN users ON users.id = user_events.user_id
                         WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
-                            AND (STRPOS(type, :type) > 0 OR :type is NULL)
-                            AND users.username = :username'''
+                        AND (STRPOS(type, :type) > 0 OR :type is NULL)
+                        AND users.username = :username'''
 
-    if username: event_query = username_query
+    if username: final = username_query
+    else: final = event_query
+
 
     if bool(start) ^ bool(stop):
-        event_query += '\nAND ((start >= :start OR stop >= :start) OR (start <= :stop OR stop <= :stop))'
+        final += '\nAND ((start >= :start OR stop >= :start) OR (start <= :stop OR stop <= :stop))'
     elif bool(start) and bool(stop):
-        event_query += '\nAND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))'
+        final += '\nAND ((start BETWEEN :start AND :stop) OR (stop BETWEEN :start AND :stop))'
 
     with db.engine.begin() as connection:
-        result = connection.execute(text(event_query),
+        result = connection.execute(text(final),
                                     {"name": name, "username": username, "type": type, "start": start, "stop": stop}).mappings().all()
-    
+
     return result if result else {}
 
 

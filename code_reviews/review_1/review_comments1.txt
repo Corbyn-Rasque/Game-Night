@@ -23,7 +23,7 @@ publisher, release year, and player count 4 times and got 4 separate ids.
 - Fixed. Forced uniqueness on game_name and platform
 
 • Searching by Username only in /events results in a 500 internal server error.
--
+- Fixed
 
 • Creating a bracket for an event_id that doesn’t exist in @POST/brackets results in a 500 internal error -> perhaps some 
 more checking could be of use here, or make another item mandatory?
