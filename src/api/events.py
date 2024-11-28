@@ -89,16 +89,14 @@ def get_event_by_id(event_id: int):
 
 @router.get("/{event_id}/users")
 def get_event_attendees(event_id: int):
-    user_query = text('''SELECT users.username AS name, users.first, users.last
+    user_query = text('''SELECT users.username AS username, users.first, users.last
                          FROM events
-                         JOIN user_events ON user_events.event_id = id
-                         JOIN users ON users.id = user_events.user_id
+                         JOIN event_attendance ON event_attendance.event_id = id
+                         JOIN users ON users.id = event_attendance.user_id
                          WHERE event_id = :event_id''')
 
     with db.engine.begin() as connection:
         results = connection.execute(user_query, {"event_id": event_id}).mappings().all()
-
-    results = [users.User(**user) for user in results]
 
     return results
 
