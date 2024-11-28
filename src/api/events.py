@@ -13,6 +13,7 @@ router = APIRouter(
 )
 
 class Event(BaseModel):
+    owner : str
     name: str
     type: str
     start: datetime.datetime    # UTC
@@ -27,9 +28,15 @@ def create_event(event: Event):
     create_event = text('''INSERT INTO events (name, type, start, stop, location, max_attendees) 
                            VALUES (:name, :type, :start, :stop, :location, :max_attendees)
                            RETURNING id''')
+    
+    event_host = text(''' INSERT INTO user_events (user_id, event_id)
+                          SELECT users.id, :event_id FROM users 
+                          WHERE username = :username ''')
 
     with db.engine.begin() as connection:
         event_id = connection.execute(create_event, dict(event)).scalar_one_or_none()
+        connection.execute(event_host, {"event_id": event_id, "username" : event.owner})
+
 
     return {"event_id" : event_id} if event_id else {}
 
@@ -81,7 +88,7 @@ def get_event_by_id(event_id: int):
 
 
 @router.get("/{event_id}/users")
-def get_event_users(event_id: int):
+def get_event_attendees(event_id: int):
     user_query = text('''SELECT users.username AS name, users.first, users.last
                          FROM events
                          JOIN user_events ON user_events.event_id = id
@@ -109,7 +116,7 @@ def get_event_brackets(event_id: int):
 
 
 # Cancel an event
-@router.delete("/{event_id}")
+@router.patch("/{event_id}")
 def cancel_event(event: int):
     cancel_event = text('''UPDATE events
                            SET cancelled = TRUE
