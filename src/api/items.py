@@ -134,17 +134,3 @@ def remove_all_event_contributions(event_id: int):
         connection.execute(remove_contributions, {'event_id': event_id})
 
     return "OK"
-
-
-# print(contribute_item(4, "CorbynR", Item(name = "Cheetoes", type = "Snacks", quantity = 10, payment = 500)))
-# print(request_item(4, Item(name = "Cheetoes", type = "Snacks", quantity = 5, payment = 500)))
-
-
-    # add_item = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
-    #                    SELECT :event_id, :name, :type, :requested, :cost
-    #                    WHERE NOT EXISTS (
-    #                        SELECT 1
-    #                        FROM event_items
-    #                        WHERE (event_id, name) IN ((:event_id, :name))
-    #                    )
-    #                    RETURNING id;''')
