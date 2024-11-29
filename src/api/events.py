@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 class Event(BaseModel):
-    owner : str
+    host : str
     name: str
     type: str
     start: datetime.datetime    # UTC
@@ -35,13 +35,25 @@ def create_event(event: Event):
 
     with db.engine.begin() as connection:
         event_id = connection.execute(create_event, dict(event)).scalar_one_or_none()
-        connection.execute(event_host, {"event_id": event_id, "username" : event.owner})
+        connection.execute(event_host, {"event_id": event_id, "username" : event.host})
 
 
     return {"event_id" : event_id} if event_id else {}
 
 
-# Get event details by date
+@router.post("/{event_id}")
+def join_event(username: str, event_id: int):
+
+    join = text(''' INSERT INTO user_events (user_id, event_id)
+                    SELECT users.id, :event_id FROM users 
+                    WHERE username = :username ''')
+
+    with db.engine.begin() as connection:
+        connection.execute(join, {"event_id": event_id, "username" : username})
+
+    return {"Success" : event_id} if event_id else {}
+
+# Get event details by date 
 @router.get("")
 def get_event(name: str = None, username: str = None, type: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
     event_query = '''SELECT id, name, type, location, max_attendees, start, stop, cancelled
@@ -124,10 +136,3 @@ def cancel_event(event: int):
         connection.execute(cancel_event, {"event_id": event})
 
     return "OK"
-
-# event_id = create_event(Event(event_name='Tetris Tournament', time=datetime.datetime(2024, 12, 1), type='Tetris', active='Upcoming', max_attendees=100, location='CSL Lab'))
-# print(get_event(event_id))
-# print(cancel_event(event_id))
-# print(get_event_by_date(datetime.datetime(2024, 11, 5)))
-# print(get_event(range = 12))
-# print(get_event(name = 'Batman'))
