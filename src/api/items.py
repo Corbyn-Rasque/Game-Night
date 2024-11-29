@@ -85,7 +85,7 @@ def user_contribution(event_id: int, username: str):
     return contributions
 
 
-@router.delete("/{event_id}/requests/{item_name}")
+@router.patch("/{event_id}/requests/{item_name}")
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
                              SET deleted = TRUE
@@ -98,7 +98,7 @@ def remove_request(event_id: int, item_name: str):
 
 
 # Delete single item contribution by an individual
-@router.delete("/{event_id}/contributions/{username}/{item_name}")
+@router.patch("/{event_id}/contributions/{username}/{item_name}")
 def remove_user_contributions(event_id: int, username: str, item_name: str):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
@@ -111,7 +111,7 @@ def remove_user_contributions(event_id: int, username: str, item_name: str):
 
 
 # Delete all contributions by an individual
-@router.delete("/{event_id}/contributions/{username}")
+@router.patch("/{event_id}/contributions/{username}")
 def remove_user_contributions(event_id: int, username: str):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
@@ -124,7 +124,7 @@ def remove_user_contributions(event_id: int, username: str):
 
 
 # Delete all event contributions
-@router.delete("/{event_id}/contributions")
+@router.patch("/{event_id}/contributions")
 def remove_all_event_contributions(event_id: int):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
