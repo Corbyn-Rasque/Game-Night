@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 from sqlalchemy import text
 from src import database as db
+from sqlalchemy.exc import SQLAlchemyError
+from typing import Optional
+
+
 
 router = APIRouter(
     prefix="/users",
@@ -30,7 +34,6 @@ def create_user(user: User):
 def get_user(parameter):
     id = parameter if isinstance(parameter, int) else None
     username = parameter if isinstance(parameter, str) else None
-
     get_user = text('''SELECT id, username
                        FROM users 
                        WHERE id = :id OR username = :username''')
@@ -41,12 +44,18 @@ def get_user(parameter):
     return result if result else {}
 
 
-@router.get("/{username}")
-def get_user_by_username(username: str):
-    return get_user(username)
+@router.get("/")
+def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
+    if username:
+        return get_user (username)
+    elif id:
+        return get_user (id)
+    else:
+        return {}
 
 @router.get("/{username}/events")
 def get_user_events(username: str):
+    """ returns all events a user registered to participate in"""
     user_events = text('''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
                           FROM event_attendance
                           JOIN events ON events.id = event_attendance.event_id
@@ -54,14 +63,11 @@ def get_user_events(username: str):
                           WHERE users.username = :username''')
     
     with db.engine.begin() as connection:
-        result = connection.execute(user_events, {"username": username}).mappings().first()
+        result = connection.execute(user_events, {"username": username}).mappings().all()
 
-    return result if result else {}
+    return result
 
 
-@router.get("/{user_id}")
-def get_user_by_id(id: int):
-   return get_user(id)
 
     
 # if __name__ == '__main__':
