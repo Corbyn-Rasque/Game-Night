@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
-import datetime
 from sqlalchemy import text
 from src import database as db
 
@@ -22,7 +21,7 @@ class Game(BaseModel):
 def add_game(game: Game):
     add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
                        VALUES (:name, :platform, :publisher, :release_year, :player_count)
-                       ON CONFLICT DO NOTHING
+                       ON CONFLICT(name, platform) DO NOTHING
                        RETURNING id
                        """)
 

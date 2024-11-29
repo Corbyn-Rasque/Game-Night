@@ -2,23 +2,9 @@
 
 ## 1. Users
 
-### 1.1. Get User By username – `/users/{username}/` (GET)
+### 1.1. Get User `/users/?username={username}&id={id}` (GET)
 
-Retrieves the user at the specified username. Usernames will be unique to individuals, and only a single user with be returned. 
-
-**Response**:
-
-```json
-{
-  "id":"integer",
-  "username":"string",
-}
-```
-
-
-### 1.2. Get User By id – `/users/{user_id}/` (GET)
-
-Retrieves the user with the specified id.
+Fetches user information based on a provided `username` or `id`. If neither is provided, returns an empty object.
 
 **Response**:
 
@@ -85,8 +71,8 @@ Creates a new event in the database.
 ```json
 
 {
-  "success":"boolean"
-}~
+  "event_id" : "int"
+}
 ```
 
 ## 3. Brackets

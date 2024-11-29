@@ -1,0 +1,38 @@
+Code Review Comments - Ivana Thomas #13
+
+• When canceling an event, the event still shows up in @GET/events/{event_id} and looks the same as an active event. 
+If a boolean is going to be used to handle cancellation, it would be good to return that to the user as well.
+- We want to keep the previous events on this table for lookups. However, it is important to know the 
+status of an event, so we will provide that information. 
+
+• There could be more error handling: try/except or adding print statements to your render log
+
+• In items/contributions, for a reset from the user/event maybe remove the row instead of using a Boolean? Or, could 
+insert a negative quantity to simplify any aggregation that might be needed at some point?
+
+• For /events upon event creation, a more detailed response (so we know that the response is the event id).
+- Correct. Also, realized we weren't following the API Spec. 
+
+• In @POST/brackets, the API Spec doesn’t match the request body in the deployed url. Event_id is clear, but game_id 
+is a little bit confusing*.
+-> Game_id is more clear after seeing the next step in example flow 1. It could be improved by implementing the game 
+insertion before creating the event and brackets/ making this a requirement.
+
+• Despite use of ‘ON CONFLICT’, I was able to insert the exact same Fortnite entry into 'games', with the same platform, 
+publisher, release year, and player count 4 times and got 4 separate ids.
+- Fixed. Forced uniqueness on game_name and platform
+
+• Searching by Username only in /events results in a 500 internal server error.
+- Fixed
+
+• Creating a bracket for an event_id that doesn’t exist in @POST/brackets results in a 500 internal error -> perhaps some 
+more checking could be of use here, or make another item mandatory?
+
+• @GET/users/{user_id} is returning {}. Per API spec, it appears it should return username and id. Returning name as an 
+additional measure might be nice too!
+- Fixed. It was returning {} because of a bug. This wasn't intended
+
+• Super minor: datetime is imported into games, but not used
+- deleted 
+
+
