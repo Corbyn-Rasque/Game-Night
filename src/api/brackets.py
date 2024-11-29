@@ -190,6 +190,3 @@ def seed_bracket(bracket_id: int, bounds: SeedBounds):
     except Exception as e:
         logger.error(f"Unexpected error seeding bracket: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
-
-bounds = SeedBounds(beginner_limit=0)
-seed_bracket(4,bounds)
