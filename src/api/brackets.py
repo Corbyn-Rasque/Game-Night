@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from src.api import auth
 import datetime
 from sqlalchemy import text
 from src import database as db
+from sqlalchemy.exc import SQLAlchemyError
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/brackets",
@@ -134,3 +138,55 @@ def remove_bracket(bracket_id: int):
         connection.execute(remove_bracket, {"bracket_id": bracket_id})
 
     return "OK"
+
+class SeedBounds(BaseModel):
+    beginner_limit: int
+
+@router.post("/{bracket_id}/seeding")
+def seed_bracket(bracket_id: int, bounds: SeedBounds):
+    if bounds.beginner_limit <= 0:
+        bounds.beginner_limit = 1
+    bounds_dict = dict(bounds)
+    id_check = text('''SELECT 1 FROM brackets WHERE id = :bracket_id''')
+
+    player_winrates = text('''WITH bracket_players as (
+                                    SELECT DISTINCT player_id
+                                    FROM match_players
+                                    JOIN matches ON matches.id = match_players.match_id
+                                    WHERE bracket_id = :bracket_id
+                                ),
+                                scored_players as (
+                                    SELECT player_id, (:beginner_limit*sum(score)+(count(1)))/(1+(:beginner_limit*(count(1)))) as seed_score 
+                                    FROM bracket_players
+                                    JOIN match_players using(player_id)
+                                    GROUP BY player_id
+                                    order by seed_score desc
+                                )
+                                SELECT :bracket_id as bracket_id, player_id,
+                                ROW_NUMBER() over (order by seed_score desc) as seed
+                                FROM scored_players
+                                ''')
+
+    insertion = text('''INSERT INTO bracket_seeds (bracket_id, player_id, seed)
+                        VALUES (:bracket_id, :player_id, :seed)
+                        ON CONFLICT (bracket_id, player_id) DO
+                            UPDATE SET seed = :seed
+                        RETURNING bracket_id, player_id, seed''')
+
+    try:
+        with db.engine.begin() as connection:
+            exists = connection.execute(id_check, {"bracket_id": bracket_id}).scalar()
+            if not exists:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Bracket not found')
+            result = connection.execute(player_winrates, {"bracket_id": bracket_id} | bounds_dict).mappings().all()
+            connection.execute(insertion, result)
+
+            print(result)
+            return result
+
+    except HTTPException as e:
+        logger.error(f"Bracket not found")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error seeding bracket: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
