@@ -148,3 +148,5 @@ def remove_all_event_contributions(event_id: int):
     #                        WHERE (event_id, name) IN ((:event_id, :name))
     #                    )
     #                    RETURNING id;''')
+
+    #
