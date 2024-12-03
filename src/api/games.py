@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from src.api import auth
 from sqlalchemy import text
@@ -24,12 +24,12 @@ def add_game(game: Game):
                        ON CONFLICT(name, platform) DO NOTHING
                        RETURNING id
                        """)
-
-    with db.engine.begin() as connection:
-        response = connection.execute(add_game, dict(game)).scalar_one_or_none()
-
-    return dict(zip(["id"], [response]))
-
+    try:
+        with db.engine.begin() as connection:
+            response = connection.execute(add_game, dict(game)).scalar_one_or_none()
+        return dict(zip(["id"], [response]))
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error inserting game")
 
 @router.get("/{name}")
 def get_game(name: str, platform = None):
@@ -38,12 +38,12 @@ def get_game(name: str, platform = None):
                   WHERE name = :name """
     
     with_platform = "AND platform = :platform" if platform else ""
-    
-    with db.engine.begin() as connection:
-        result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
-
-    return result if result else {}
-
+    try:
+        with db.engine.begin() as connection:
+            result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
+        return result if result else {}
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error getting game")
 # if __name__ == '__main__':
 #     print(add_game(Game(name='Fortnite', platform='PC', publisher='Epic Games', release_year=2017, player_count=4)))
 #     print(get_game('Fortnite', 'PC'))
