@@ -108,12 +108,17 @@ def create_bracket(bracket: Bracket):
 
 @router.post("/{bracket_id}/players/{user_id}")
 def add_user(bracket_id: int, user_id: str):
-    add_user = text('''INSERT INTO bracket_entrants (bracket_id, player_id)
-                       VALUES (:bracket_id, :user_id)''')
+    add_user = text(''' INSERT INTO bracket_entrants (bracket_id, player_id)
+                        SELECT :bracket_id, :user_id
+                        FROM bracket_entrants
+                        WHERE bracket_id = :bracket_id
+                        HAVING count(*)<(SELECT num_players FROM brackets WHERE id =:bracket_id)
+                        ON CONFLICT(bracket_id, player_id) DO NOTHING
+                        RETURNING bracket_id, player_id''')
     
     with db.engine.begin() as connection:
-        connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id})
-
+        result = connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id}).mappings().one_or_none()
+    print(result)
     return "OK"
 
 
@@ -141,52 +146,118 @@ def remove_bracket(bracket_id: int):
 class SeedBounds(BaseModel):
     beginner_limit: int
 
-@router.post("/{bracket_id}/seeding")
-def seed_bracket(bracket_id: int, bounds: SeedBounds):
+@router.post("/{bracket_id}/start")
+def start_bracket(bracket_id: int, bounds: SeedBounds):
     if bounds.beginner_limit <= 0:
         bounds.beginner_limit = 1
     bounds_dict = dict(bounds)
-    id_check = text('''SELECT 1 FROM brackets WHERE id = :bracket_id''')
+    bracket_check = text('''SELECT 1 FROM brackets
+                            WHERE id = :bracket_id''')
 
-    player_winrates = text('''WITH bracket_players as (
-                                    SELECT DISTINCT player_id
-                                    FROM match_players
-                                    JOIN matches ON matches.id = match_players.match_id
-                                    WHERE bracket_id = :bracket_id
-                                ),
-                                scored_players as (
-                                    SELECT player_id, (:beginner_limit*sum(score)+(count(1)))/(1+(:beginner_limit*(count(1)))) as seed_score 
-                                    FROM bracket_players
-                                    JOIN match_players using(player_id)
-                                    GROUP BY player_id
-                                    order by seed_score desc
-                                )
-                                SELECT :bracket_id as bracket_id, player_id,
-                                ROW_NUMBER() over (order by seed_score desc) as seed
-                                FROM scored_players
-                                ''')
+    start_check = text(''' UPDATE brackets SET started = TRUE 
+                        WHERE id = :bracket_id
+                        AND started = FALSE
+                        RETURNING id''')
 
-    insertion = text('''INSERT INTO bracket_seeds (bracket_id, player_id, seed)
-                        VALUES (:bracket_id, :player_id, :seed)
-                        ON CONFLICT (bracket_id, player_id) DO
-                            UPDATE SET seed = :seed
-                        RETURNING bracket_id, player_id, seed''')
+    player_matchups = text('''WITH bracket_players as (
+                              SELECT DISTINCT player_id
+                              FROM bracket_entrants
+                              WHERE bracket_id = :bracket_id
+                            ),
+                            scored_players as (
+                              SELECT player_id, coalesce((:beginner_limit*sum(score)+(count(1)))/(1+(:beginner_limit*(count(1)))),-22)::float as seed_score 
+                              FROM bracket_players
+                              LEFT JOIN match_players using(player_id)
+                              GROUP BY player_id
+                            ),
+                            seeded_players as(
+                              SELECT :bracket_id as bracket_id, player_id,
+                              ROW_NUMBER() over (order by seed_score desc, player_id desc) as seed
+                              FROM scored_players
+                            ),
+                            empties as (
+                                SELECT gen,
+                                COALESCE(bracket_id, :bracket_id) as bracket_id,
+                                COALESCE(player_id, null) as player_id,
+                                gen as seed,
+                                ROW_NUMBER() over (order by gen desc) as opp_seed
+                                FROM generate_series(1,(SELECT num_players FROM brackets WHERE id =:bracket_id)) as gen
+                                LEFT JOIN seeded_players on gen = seed
+                            ),
+                            all_seeds as (
+                                SELECT bracket_id, player_id, seed, opp_seed
+                                FROM empties
+                                ORDER BY seed
+                            ),
+                            all_matches as(
+                                (SELECT id as match_id
+                                FROM matches
+                                WHERE bracket_id = :bracket_id
+                                ORDER BY match_id desc)
+                                UNION ALL
+                                (SELECT id as match_id
+                                FROM matches
+                                WHERE bracket_id = :bracket_id
+                                ORDER BY match_id asc)
+                            ),
+                            numbered_matches as (
+                                SELECT match_id,
+                                ROW_NUMBER() over (ORDER BY 1 asc) as row
+                                FROM all_matches
+                            )
+                            SELECT match_id, player_id, seed 
+                            FROM numbered_matches
+                            JOIN all_seeds on seed = row
+                            ORDER BY seed ASC''')
+
+    match_insertion = text('''  INSERT INTO match_players(match_id, player_id, player_seed)
+                                VALUES (:match_id, :player_id, :seed)''')
+
+    bye_info = text('''  with bye_matches as (
+                              select distinct match_id from match_players
+                              join matches on match_id = matches.id
+                              WHERE player_id is null
+                              and bracket_id = :bracket_id
+                            ),
+                            byed_seeds as (
+                              select match_id, min(player_seed) as min_seed from match_players
+                              JOIN bye_matches using(match_id)
+                              group by match_id
+                            )
+                              select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
+                              JOIN match_players using(match_id)
+                              where player_seed = min_seed
+                            ''')
+    winner_input = text(''' UPDATE matches SET winner_id = :player_id
+                            WHERE match_id = :match_id''')
+
+
 
     try:
         with db.engine.begin() as connection:
-            exists = connection.execute(id_check, {"bracket_id": bracket_id}).scalar()
+            exists = connection.execute(bracket_check, {"bracket_id": bracket_id}).scalar()
             if not exists:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Bracket not found')
-            result = connection.execute(player_winrates, {"bracket_id": bracket_id} | bounds_dict).mappings().all()
-            connection.execute(insertion, result)
+            toggled = connection.execute(start_check, {"bracket_id": bracket_id}).scalar()
+            if not toggled:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Bracket already started')
+
+            result = connection.execute(player_matchups, {"bracket_id": bracket_id} | bounds_dict).mappings().all()
+            connection.execute(match_insertion,result)
+            byed = connection.execute(bye_info, {"bracket_id": bracket_id}).mappings().all()
+            connection.execute(winner_input,byed)
 
             print(result)
             return result
 
     except HTTPException as e:
-        logger.error(f"Bracket not found")
+        logger.error(f"Bracket information not valid")
         raise e
-    except Exception as e:
-        logger.error(f"Unexpected error seeding bracket: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
+    # except Exception as e:
+    #     logger.error(f"Unexpected error seeding bracket: {e}")
+    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
 
+#remove_user(4,42)
+#add_user(4, 43)
+test = SeedBounds(beginner_limit=30)
+start_bracket(4, test)
