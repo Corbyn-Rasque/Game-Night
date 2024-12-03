@@ -4,7 +4,7 @@ from src.api import auth
 import datetime
 from sqlalchemy import text
 from src import database as db
-from sqlalchemy.exc import SQLAlchemyError
+import math
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,6 @@ class Bracket(BaseModel):
     event_id: int
     game_id: int
     time: datetime.datetime
-    match_size: int
     num_players: int
 
 class Match(BaseModel):
@@ -98,8 +97,9 @@ def get_match_players(bracket_id: int, match_id: int):
 
 @router.post("")
 def create_bracket(bracket: Bracket):
-    create_bracket = text('''INSERT INTO brackets (name, event_id, game_id, time, match_size, num_players)
-                             VALUES (:name, :event_id, :game_id, :time, :match_size, :num_players)
+    bracket.num_players = 1 if bracket.num_players <= 0 else 2**math.ceil(math.log2(bracket.num_players))
+    create_bracket = text('''INSERT INTO brackets (name, event_id, game_id, time, num_players)
+                             VALUES (:name, :event_id, :game_id, :time, :num_players)
                              RETURNING id''')
     
     with db.engine.begin() as connection:
@@ -190,3 +190,4 @@ def seed_bracket(bracket_id: int, bounds: SeedBounds):
     except Exception as e:
         logger.error(f"Unexpected error seeding bracket: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
+
