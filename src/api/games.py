@@ -17,6 +17,7 @@ class Game(BaseModel):
     release_year: int
     player_count: int
 
+#Add a new game to database
 @router.post("/")
 def add_game(game: Game):
     add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
@@ -31,6 +32,7 @@ def add_game(game: Game):
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error inserting game")
 
+#retrieve a game from database
 @router.get("/{name}")
 def get_game(name: str, platform = None):
     get_game = """SELECT id 
@@ -41,6 +43,8 @@ def get_game(name: str, platform = None):
     try:
         with db.engine.begin() as connection:
             result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
+            if result is None:
+                raise HTTPException(status_code=404, detail="This game could not be found") 
         return result if result else {}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error getting game")
