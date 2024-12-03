@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from src.api import auth
 from sqlalchemy import text
 from src import database as db
-from sqlalchemy.exc import SQLAlchemyError
+import sqlalchemy.exc 
 from typing import Optional
 
 
@@ -19,17 +19,22 @@ class User(BaseModel):
     first: str
     last: str
 
-@router.post("/")
+@router.post("/", status_code=200)
 def create_user(user: User):
     add_user = text('''INSERT INTO users (username, first, last)
                        VALUES (:username, :first, :last)
                        ON CONFLICT (username) DO NOTHING
                        RETURNING id''')
 
-    with db.engine.begin() as connection:
-        response = connection.execute(add_user, dict(user)).scalar_one_or_none()
+    try:
+        with db.engine.begin() as connection:
+            response = connection.execute(add_user, dict(user)).scalar_one_or_none()
+        return dict(zip(["id"], [response]))
+    except sqlalchemy.exc.IntegrityError:
+        raise HTTPException(status_code=400,detail="User input violates an integrity constraint")
+    except Exception:
+        raise HTTPException(status_code=400,detail="Error creating user")
 
-    return dict(zip(["id"], [response]))
 
 def get_user(parameter):
     id = parameter if isinstance(parameter, int) else None
@@ -38,13 +43,14 @@ def get_user(parameter):
                        FROM users 
                        WHERE id = :id OR username = :username''')
 
-    with db.engine.begin() as connection:
-        result = connection.execute(get_user, {"id": id, "username": username}).mappings().first()
+    try: 
+        with db.engine.begin() as connection:
+            result = connection.execute(get_user, {"id": id, "username": username}).mappings().first()
+        return result if result else {}
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error retreiving user")
 
-    return result if result else {}
-
-
-@router.get("/")
+@router.get("/",status_code=200)
 def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
     if username:
         return get_user (username)
@@ -53,7 +59,7 @@ def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
     else:
         return {}
 
-@router.get("/{username}/events")
+@router.get("/{username}/events", status_code=200)
 def get_user_events(username: str):
     """ returns all events a user registered to participate in"""
     user_events = text('''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
@@ -62,10 +68,12 @@ def get_user_events(username: str):
                           JOIN users ON users.id = event_attendance.user_id
                           WHERE users.username = :username''')
     
-    with db.engine.begin() as connection:
-        result = connection.execute(user_events, {"username": username}).mappings().all()
-
-    return result
+    try:
+        with db.engine.begin() as connection:
+            result = connection.execute(user_events, {"username": username}).mappings().all()
+        return result
+    except Exception:
+        return HTTPException(status_code=400, detail="Unexpected error retrieving user events")
 
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from src.api import auth
 from sqlalchemy import text
@@ -23,18 +23,18 @@ class Item(BaseModel):
     payment: int
 
 # Insert item requests for an event, or update if it's been added
-@router.post("/{event_id}/requests")
+@router.post("/{event_id}/requests", status_code=200)
 def request_item(event_id: int, item: Item):
     request = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
                       VALUES (:event_id, :name, :type, :quantity, :payment)
                       ON CONFLICT (event_id, name)
-                      DO UPDATE SET (type, requested, cost) = (EXCLUDED.type, EXCLUDED.requested, EXCLUDED.cost)''')
-    
-    with db.engine.begin() as connection:
-        connection.execute(request, dict(item) | {'event_id': event_id})
-
-    return "OK"
-
+                      DO UPDATE SET (type, requested, cost) = (EXCLUDED.type, EXCLUDED.requested, EXCLUDED.cost)''') 
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(request, dict(item) | {'event_id': event_id})
+            return "Ok"
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error inserting item")
 
 # Insert an individual contribution, or update if it's been added
 @router.post("/{event_id}/contributions/user/{username}")
@@ -47,15 +47,15 @@ def contribute_item(event_id: int, username: str, item: Item):
                          VALUES (:event_id, :username, :name, :quantity, :payment)
                          ON CONFLICT (event_id, username, item_name)
                          DO UPDATE SET (quantity, payment) = (EXCLUDED.quantity, EXCLUDED.payment)''')
+    try:
+        with db.engine.begin() as connection:
+            if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id, 'username': username}).scalar_one_or_none():
+                request_item(event_id, item)
 
-    with db.engine.begin() as connection:
-        if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id, 'username': username}).scalar_one_or_none():
-            request_item(event_id, item)
-
-        connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
-
-    return "OK"
-
+            connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
+        return "OK"
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error adding contributed item")
 
 # Get contributions overall, grouped by item
 @router.get("/{event_id}/contributions/")
@@ -65,11 +65,12 @@ def contributions(event_id: int):
                                 WHERE (event_id, deleted) IN ((:event_id, FALSE))
                                 GROUP BY item_name''')
     
-    with db.engine.begin() as connection:
-        contributions = connection.execute(get_contributions, {'event_id': event_id}).mappings().all()
-
-    return contributions
-
+    try:
+        with db.engine.begin() as connection:
+            contributions = connection.execute(get_contributions, {'event_id': event_id}).mappings().all()
+        return contributions
+    except Exception:
+        raise HTTPException(status_code=400,detail="Error retrieving contributions")
 
 # Get contributions from a single user
 @router.get("/{event_id}/contributions/{username}")
@@ -78,50 +79,50 @@ def user_contribution(event_id: int, username: str):
                                 FROM items_ledger
                                 WHERE (event_id, username, deleted) IN ((:event_id, :username, FALSE))
                                 GROUP BY item_name''')
-    
-    with db.engine.begin() as connection:
-        contributions = connection.execute(get_contributions, {'event_id': event_id, 'username': username}).mappings().all()
+    try:
+        with db.engine.begin() as connection:
+            contributions = connection.execute(get_contributions, {'event_id': event_id, 'username': username}).mappings().all()
+        return contributions
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error retrieving contributions")
 
-    return contributions
-
-
-@router.delete("/{event_id}/requests/{item_name}")
+@router.patch("/{event_id}/requests/{item_name}")
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
                              SET deleted = TRUE
                              WHERE (event_id, name) IN ((:event_id, :item_name))''')
-    
-    with db.engine.begin() as connection:
-        connection.execute(remove_request, {'event_id': event_id, 'item_name': item_name})
-    
-    return "OK"
-
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(remove_request, {'event_id': event_id, 'item_name': item_name})
+        return "OK"
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error removing item request")
 
 # Delete single item contribution by an individual
-@router.delete("/{event_id}/contributions/{username}/{item_name}")
+@router.patch("/{event_id}/contributions/{username}/{item_name}")
 def remove_user_contributions(event_id: int, username: str, item_name: str):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE (event_id, username, item_name) IN ((:event_id, :username, :item_name))''')
-    
-    with db.engine.begin() as connection:
-        connection.execute(remove_contributions, {'event_id': event_id, 'username': username, 'item_name': item_name})
-
-    return "OK"
-
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(remove_contributions, {'event_id': event_id, 'username': username, 'item_name': item_name})
+        return "OK"
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error while removing items")
 
 # Delete all contributions by an individual
-@router.delete("/{event_id}/contributions/{username}")
+@router.patch("/{event_id}/contributions/{username}")
 def remove_user_contributions(event_id: int, username: str):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE (event_id, username) IN ((:event_id, :username))''')
-    
-    with db.engine.begin() as connection:
-        connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
-
-    return "OK"
-
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
+        return "OK"
+    except Exception:
+        raise HTTPException(status_code=400,detail="Unexpected error while removing items")
 
 # Delete all event contributions
 @router.delete("/{event_id}/contributions")
@@ -129,12 +130,12 @@ def remove_all_event_contributions(event_id: int):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE event_id = :event_id''')
-    
-    with db.engine.begin() as connection:
-        connection.execute(remove_contributions, {'event_id': event_id})
-
-    return "OK"
-
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(remove_contributions, {'event_id': event_id})
+        return "OK"
+    except Exception:
+        raise HTTPException(status_code=400, detail="Unexpected error while removing event contributions")
 
 # print(contribute_item(4, "CorbynR", Item(name = "Cheetoes", type = "Snacks", quantity = 10, payment = 500)))
 # print(request_item(4, Item(name = "Cheetoes", type = "Snacks", quantity = 5, payment = 500)))

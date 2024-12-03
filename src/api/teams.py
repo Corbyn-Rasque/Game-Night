@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 import datetime
@@ -20,38 +20,40 @@ class Team_Player(BaseModel):
     player_id: int
 
 
-@router.get("/{team_id}/players")
+@router.get("/{team_id}/players", status_code=200)
 def get_team_players(team_id: int):
     query_players = text('''SELECT player_id
                             FROM team_players
                             WHERE team_id = :team_id''')
-    
-    with db.engine.begin() as connection:
-        results = connection.execute(query_players, {"team_id": team_id}).mappings().all()
+    try:
+        with db.engine.begin() as connection:
+            results = connection.execute(query_players, {"team_id": team_id}).mappings().all()
+        return results
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error getting players")
 
-    return results
-
-
-@router.post("")
+@router.post("", status_code=201)
 def create_team(name: str):
     add_team = text('''INSERT INTO teams (name)
                        VALUES (:name)
                        RETURNING id''')
     
-    with db.engine.begin() as connection:
-        result = connection.execute(add_team, {"name": name}).mappings().one()
+    try:
+        with db.engine.begin() as connection:
+            result = connection.execute(add_team, {"name": name}).mappings().one()
+        return result
+    except Exception:
+        raise HTTPException(status_code=400,detail="Error creating team")
 
-    return result
-
-
-@router.delete("/{team_id}")
+@router.delete("/{team_id}",status_code=200)
 def remove_team(team_id: int):
     remove_team = text('''DELETE FROM teams
                           WHERE id = :team_id''')
     
-    with db.engine.begin() as connection:
-        connection.execute(remove_team, {"team_id": team_id})
-
-    return "OK"
-
-print(create_team("my favorite team :D"))
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(remove_team, {"team_id": team_id})
+        return "OK"
+        print(create_team("my favorite team :D"))
+    except Exception:
+        raise HTTPException(status_code=418, detail="Error deleting team")
