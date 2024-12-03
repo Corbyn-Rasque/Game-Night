@@ -74,11 +74,3 @@ def get_user_events(username: str):
         return result
     except Exception:
         return HTTPException(status_code=400, detail="Unexpected error retrieving user events")
-
-
-
-    
-# if __name__ == '__main__':
-#     print(create_user(User(username = 'CorbynR', first = 'Corbyn', last = 'Rasque')))
-#     print(get_user_by_username('Corbyn'))
-#     print(get_user_by_id(0))

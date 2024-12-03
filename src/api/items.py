@@ -100,7 +100,7 @@ def remove_request(event_id: int, item_name: str):
 
 # Delete single item contribution by an individual
 @router.patch("/{event_id}/contributions/{username}/{item_name}")
-def remove_user_contributions(event_id: int, username: str, item_name: str):
+def remove_user_contribution(event_id: int, username: str, item_name: str):
     remove_contributions = text('''UPDATE items_ledger
                                    SET deleted = TRUE
                                    WHERE (event_id, username, item_name) IN ((:event_id, :username, :item_name))''')
@@ -136,18 +136,3 @@ def remove_all_event_contributions(event_id: int):
         return "OK"
     except Exception:
         raise HTTPException(status_code=400, detail="Unexpected error while removing event contributions")
-
-# print(contribute_item(4, "CorbynR", Item(name = "Cheetoes", type = "Snacks", quantity = 10, payment = 500)))
-# print(request_item(4, Item(name = "Cheetoes", type = "Snacks", quantity = 5, payment = 500)))
-
-
-    # add_item = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
-    #                    SELECT :event_id, :name, :type, :requested, :cost
-    #                    WHERE NOT EXISTS (
-    #                        SELECT 1
-    #                        FROM event_items
-    #                        WHERE (event_id, name) IN ((:event_id, :name))
-    #                    )
-    #                    RETURNING id;''')
-
-    #
