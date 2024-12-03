@@ -101,30 +101,29 @@ def create_bracket(bracket: Bracket):
     create_bracket = text('''INSERT INTO brackets (name, event_id, game_id, time, num_players)
                              VALUES (:name, :event_id, :game_id, :time, :num_players)
                              RETURNING id''')
-    
     with db.engine.begin() as connection:
         result = connection.execute(create_bracket, dict(bracket)).mappings().one_or_none()
 
     return result
 
-@router.post("/{bracket_id}/matches/{match_id}/players/{user_id}")
-def add_user(bracket_id: int, match_id: int, user_id: str):
-    add_user = text('''INSERT INTO match_players (match_id, player_id)
-                       VALUES (:match_id, :user_id)''')
+@router.post("/{bracket_id}/players/{user_id}")
+def add_user(bracket_id: int, user_id: str):
+    add_user = text('''INSERT INTO bracket_entrants (bracket_id, player_id)
+                       VALUES (:bracket_id, :user_id)''')
     
     with db.engine.begin() as connection:
-        connection.execute(add_user, {"match_id": match_id, "user_id": user_id})
+        connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id})
 
     return "OK"
 
 
-@router.delete("/{bracket_id}/matches/{match_id}/players/{user_id}")
-def remove_user(bracket_id: int, match_id: int, user_id: int):
-    remove_user = text('''DELETE FROM match_players
-                          WHERE (match_id, player_id) IN ((:match_id, :user_id))''')
+@router.delete("/{bracket_id}/players/{user_id}")
+def remove_user(bracket_id: int, user_id: int):
+    remove_user = text('''DELETE FROM bracket_entrants
+                          WHERE (bracket_id, player_id) IN ((:bracket_id, :user_id))''')
 
     with db.engine.begin() as connection:
-        connection.execute(remove_user, {"match_id": match_id, "user_id": user_id})
+        connection.execute(remove_user, {"bracket_id": bracket_id, "user_id": user_id})
 
     return "OK"
 
