@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from typing import Optional
 from src.api import auth
 from sqlalchemy import text
+from fastapi.responses import JSONResponse
 from src import database as db
 
 router = APIRouter(
@@ -24,6 +24,18 @@ class Item(BaseModel):
 # Insert item requests for an event, or update if it's been added
 @router.post("/{event_id}/request")
 def request_new_item(event_id: int, item: Item):
+
+    if item.quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.cost <= 0:
+        response = "cost should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
+
     request = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
                       VALUES (:event_id, :name, :type, :quantity, :cost)''')
     
@@ -33,7 +45,9 @@ def request_new_item(event_id: int, item: Item):
     except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
     
-    return "OK"
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Item requested successfully")
+
+
 
 
 # Get contributions overall, grouped by item
@@ -59,7 +73,7 @@ def get_current_contributions(event_id: int):
             contributions = connection.execute(get_contributions, {'event_id': event_id}).mappings().all()
     except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
-
+    
     return contributions
 
 class delete_items(BaseModel):
@@ -89,10 +103,10 @@ def remove_item_request(event_id: int, to_delete: list[delete_items]):
     except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
     
-    print("Items Deleted:")
+    print("ITEM REQUEST DELETE:")
     print(items_to_delete)
 
-    return "OK"
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # Get contributions from a single user
@@ -119,6 +133,14 @@ class contribution(BaseModel):
 @router.post("/{event_id}/{username}")
 def contribute_item(event_id: int, username: str, item: contribution):
 
+
+    if item.quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.item_name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
     with db.engine.begin() as connection:
 
         check = text('''SELECT TRUE as bool FROM event_items 
@@ -143,7 +165,8 @@ def contribute_item(event_id: int, username: str, item: contribution):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
         
-    return "OK"
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Item added to contributions successfully")
+
 
 
 
@@ -154,6 +177,13 @@ class Updated_Item(BaseModel):
 @router.patch("/{event_id}/{username}")
 def update_item_contribuition(event_id: int, username: str, item: Updated_Item):
 
+    if item.new_quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.item_name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
     with db.engine.begin() as connection:
         
         #This can be deleted if it causes concurrency issues
@@ -187,7 +217,7 @@ def update_item_contribuition(event_id: int, username: str, item: Updated_Item):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
             
-    return "OK"
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/{event_id}/{username}")
@@ -209,4 +239,7 @@ def remove_user_contributions(event_id: int, username: str, to_delete: list[dele
     except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
     
-    return "OK"
+    print("ITEM CONTRIBUTIONS DELETE:")
+    print(items_to_delete)
+
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
