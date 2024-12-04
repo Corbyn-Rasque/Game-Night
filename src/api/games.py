@@ -22,7 +22,6 @@ class Game(BaseModel):
 def add_game(game: Game):
     add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
                        VALUES (:name, :platform, :publisher, :release_year, :player_count)
-                       ON CONFLICT(name, platform) DO NOTHING
                        RETURNING id
                        """)
     try:
@@ -41,6 +40,7 @@ def get_game(name: str, platform : str = None):
                   WHERE name = :name """
     
     with_platform = "AND platform = :platform" if platform else ""
+
     try:
         with db.engine.begin() as connection:
             result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
@@ -49,3 +49,4 @@ def get_game(name: str, platform : str = None):
         return result if result else {}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error getting game")
+
