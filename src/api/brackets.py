@@ -374,6 +374,7 @@ def finish_round(bracket_id:int):
             connection.execute(match_player_insert,next_matches)
             match_pairings = connection.execute(get_next_matches, {"bracket_id": bracket_id}).mappings().all()
             connection.execute(match_linking,match_pairings)
+            return "OK"
     except HTTPException as e:
         logger.error(f"Bracket information not valid")
         raise e
@@ -413,6 +414,7 @@ def declare_winner(bracket_id:int, winner:MatchWon):
             if not exists:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Winner or bracket info not valid')
             connection.execute(update_score,dict(winner)|{"match_id":exists})
+            return "OK"
     except HTTPException as e:
         logger.error(f"Winner information not valid")
         raise e
@@ -424,12 +426,12 @@ def declare_winner(bracket_id:int, winner:MatchWon):
 
 #remove_user(4,42)
 #add_user(4, 43)
-# test = SeedBounds(beginner_limit=30)
-# start_bracket(4, test)
+# test = SeedBounds(beginner_limit=0)
+# start_bracket(54, test)
 # won_test = MatchWon(won_by_id = 38)
 # declare_winner(4,won_test)
 #
-# finish_round(4)
+# finish_round(54)
 
 
 # new_match_inserts = text('''with bye_matches as (
