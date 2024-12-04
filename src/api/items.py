@@ -24,6 +24,18 @@ class Item(BaseModel):
 # Insert item requests for an event, or update if it's been added
 @router.post("/{event_id}/request")
 def request_new_item(event_id: int, item: Item):
+
+    if item.quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.cost <= 0:
+        response = "cost should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
+
     request = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
                       VALUES (:event_id, :name, :type, :quantity, :cost)''')
     
@@ -121,6 +133,14 @@ class contribution(BaseModel):
 @router.post("/{event_id}/{username}")
 def contribute_item(event_id: int, username: str, item: contribution):
 
+
+    if item.quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.item_name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
     with db.engine.begin() as connection:
 
         check = text('''SELECT TRUE as bool FROM event_items 
@@ -157,6 +177,13 @@ class Updated_Item(BaseModel):
 @router.patch("/{event_id}/{username}")
 def update_item_contribuition(event_id: int, username: str, item: Updated_Item):
 
+    if item.new_quantity <= 0:
+        response = "quantity should be a non negative Int"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    if item.item_name.isnumeric():
+        response = "Item Name cannot be numeric"
+        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
+    
     with db.engine.begin() as connection:
         
         #This can be deleted if it causes concurrency issues
