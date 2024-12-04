@@ -47,9 +47,6 @@ def request_new_item(event_id: int, item: Item):
     
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Item requested successfully")
 
-
-
-
 # Get contributions overall, grouped by item
 @router.get("/{event_id}/request")
 def get_current_contributions(event_id: int):
@@ -92,7 +89,6 @@ def remove_item_request(event_id: int, to_delete: list[delete_items]):
                                 DELETE FROM item_contributions
                                 WHERE event_id = :event_id AND
                                 item_name = :name; 
-
                                 DELETE FROM event_items
                                 WHERE event_id = :event_id AND
                                 name = :name;  ''')
@@ -243,3 +239,4 @@ def remove_user_contributions(event_id: int, username: str, to_delete: list[dele
     print(items_to_delete)
 
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+
