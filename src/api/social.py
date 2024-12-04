@@ -10,6 +10,7 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+#add a user as a friend 
 @router.post("/add")
 def add_friend(user_id: int, friend_id: int):
     try: 
@@ -26,6 +27,7 @@ def add_friend(user_id: int, friend_id: int):
     print("friend added")
     return ("Friend Added")
 
+#return users who are friends of user
 @router.get("/friends")
 def get_friends(user_id: int):
     try: 
@@ -45,6 +47,7 @@ def get_friends(user_id: int):
     print(dict(result))
     return (dict(result))
 
+#remove a user as a friend
 @router.delete("/remove")
 def remove_friend(user_id: int, friend_id : int):
     try:
@@ -61,6 +64,7 @@ def remove_friend(user_id: int, friend_id : int):
     print("removed friend :(")
     return (f"Removed user {friend_id}")
 
+#returns all events a user's friends are attending, along with a list of friends for each event
 @router.get("/events")
 def friend_events(user_id : int):
     events = {}

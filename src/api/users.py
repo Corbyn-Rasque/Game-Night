@@ -19,6 +19,7 @@ class User(BaseModel):
     first: str
     last: str
 
+#create new user
 @router.post("/", status_code=200)
 def create_user(user: User):
     add_user = text('''INSERT INTO users (username, first, last)
@@ -35,14 +36,13 @@ def create_user(user: User):
     except Exception:
         raise HTTPException(status_code=400,detail="Error creating user")
 
-
+#function to return user from username and/or id
 def get_user(parameter):
     id = parameter if isinstance(parameter, int) else None
     username = parameter if isinstance(parameter, str) else None
     get_user = text('''SELECT id, username
                        FROM users 
                        WHERE id = :id OR username = :username''')
-
     try: 
         with db.engine.begin() as connection:
             result = connection.execute(get_user, {"id": id, "username": username}).mappings().first()
@@ -50,6 +50,7 @@ def get_user(parameter):
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error retreiving user")
 
+#return a user (id and username)
 @router.get("/",status_code=200)
 def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
     if username:
@@ -59,6 +60,7 @@ def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
     else:
         return {}
 
+#get events a user is participating in
 @router.get("/{username}/events", status_code=200)
 def get_user_events(username: str):
     """ returns all events a user registered to participate in"""
@@ -66,8 +68,7 @@ def get_user_events(username: str):
                           FROM event_attendance
                           JOIN events ON events.id = event_attendance.event_id
                           JOIN users ON users.id = event_attendance.user_id
-                          WHERE users.username = :username''')
-    
+                          WHERE users.username = :username''') 
     try:
         with db.engine.begin() as connection:
             result = connection.execute(user_events, {"username": username}).mappings().all()

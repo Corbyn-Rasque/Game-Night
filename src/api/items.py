@@ -86,6 +86,7 @@ def user_contribution(event_id: int, username: str):
     except Exception:
         raise HTTPException(status_code=400, detail="Error retrieving contributions")
 
+#remove a request
 @router.patch("/{event_id}/requests/{item_name}")
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
