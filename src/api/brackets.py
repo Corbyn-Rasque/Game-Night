@@ -210,8 +210,10 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                             JOIN all_seeds on seed = row
                             ORDER BY seed ASC''')
 
-    match_insertion = text('''  INSERT INTO match_players(match_id, player_id, player_seed)
-                                VALUES (:match_id, :player_id, :seed)''')
+    match_insertion = text('''  INSERT INTO match_players(match_id, player_id, player_seed, round)
+                                SELECT :match_id, :player_id, :seed, coalesce(max(round),0)+1
+                                FROM match_players
+                                WHERE player_id = :player_id''')
 
     bye_info = text('''  with bye_matches as (
                               select distinct match_id from match_players
@@ -227,11 +229,41 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                               select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
                               JOIN match_players using(match_id)
                               where player_seed = min_seed
+                              ORDER BY min_seed ASC
                             ''')
+
     winner_input = text(''' UPDATE matches SET winner_id = :player_id
-                            WHERE match_id = :match_id''')
+                            WHERE matches.id = :match_id''')
 
+    new_match_inserts = text('''with bye_matches as (
+                                  select distinct match_id from match_players
+                                  join matches on match_id = matches.id
+                                  WHERE player_id is null
+                                  and bracket_id = :bracket_id
+                                ),
+                                byed_seeds as (
+                                  select match_id, min(player_seed) as min_seed from match_players
+                                  JOIN bye_matches using(match_id)
+                                  group by match_id
+                                ),
+                                bye_info as (
+                                  select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
+                                  JOIN match_players using(match_id)
+                                  where player_seed = min_seed
+                                )
+                                INSERT INTO matches(bracket_id)
+                                SELECT (:bracket_id)
+                                FROM generate_series(1, :amount)
+                                RETURNING id as match_id''')
 
+    match_linking = text('''WITH old_match_players as (
+                                SELECT match_id from match_players
+                                JOIN matches on match_id = matches.id
+                                WHERE round = (SELECT max(round)-1 from match_players WHERE player_id = :player_id)
+                                and player_id = :player_id
+                            )
+                            UPDATE matches SET next_match = :match_id
+                            WHERE matches.id = (SELECT match_id from old_match_players)''')
 
     try:
         with db.engine.begin() as connection:
@@ -246,7 +278,16 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
             connection.execute(match_insertion,result)
             byed = connection.execute(bye_info, {"bracket_id": bracket_id}).mappings().all()
             connection.execute(winner_input,byed)
-
+            new_match_ids = connection.execute(new_match_inserts, {"bracket_id": bracket_id,"amount":(len(byed)//2)+1}).mappings().all()
+            new_match_ids.extend(list(reversed(new_match_ids)))
+            new_match_id_list = list(dict(x) for x in new_match_ids)
+            i = 0
+            for match in new_match_id_list:
+                match["player_id"] = byed[i]["player_id"] if i<len(byed) else None
+                match["seed"] = i+1
+                i += 1
+            connection.execute(match_insertion, new_match_id_list)
+            connection.execute(match_linking, new_match_id_list)
             print(result)
             return result
 
