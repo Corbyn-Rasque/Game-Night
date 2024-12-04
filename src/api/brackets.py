@@ -431,7 +431,7 @@ def declare_winner(bracket_id:int, winner:MatchWon):
 # won_test = MatchWon(won_by_id = 38)
 # declare_winner(4,won_test)
 #
-finish_round(54)
+# finish_round(54)
 
 
 # new_match_inserts = text('''with bye_matches as (
