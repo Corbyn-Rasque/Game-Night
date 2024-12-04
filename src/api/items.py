@@ -38,6 +38,7 @@ def request_new_item(event_id: int, item: Item):
 
     request = text('''INSERT INTO event_items (event_id, name, type, requested, cost)
                       VALUES (:event_id, :name, :type, :quantity, :cost)''')
+
     
     try:
         with db.engine.begin() as connection:
@@ -106,7 +107,7 @@ def remove_item_request(event_id: int, to_delete: list[delete_items]):
     print("ITEM REQUEST DELETE:")
     print(items_to_delete)
 
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")
 
 
 # Get contributions from a single user
@@ -151,9 +152,10 @@ def contribute_item(event_id: int, username: str, item: contribution):
         if not requested:
             raise HTTPException(status_code=404, detail=f"{item.item_name} is not currently requested for this event")
         
-        contribute = text('''WITH item_cost AS (
+        contribute = text('''
+                    WITH item_cost AS (
                     SELECT cost FROM event_items
-                    WHERE event_id = 40 AND name = :item_name
+                    WHERE event_id = :event_id AND name = :item_name
                     )
                     INSERT INTO item_contributions (event_id, username, item_name, quantity, payment)
                     SELECT :event_id, :username, :item_name, :quantity, cost * :quantity
@@ -217,7 +219,7 @@ def update_item_contribuition(event_id: int, username: str, item: Updated_Item):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"An error occurred while updating the contribution: {str(e)}")
             
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="OK")
 
 
 @router.delete("/{event_id}/{username}")
@@ -242,4 +244,4 @@ def remove_user_contributions(event_id: int, username: str, to_delete: list[dele
     print("ITEM CONTRIBUTIONS DELETE:")
     print(items_to_delete)
 
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")

@@ -44,7 +44,7 @@ def create_event(event: Event):
 @router.post("/{event_id}")
 def join_event(username: str, event_id: int):
 
-    join = text(''' INSERT INTO user_events (user_id, event_id)
+    join = text(''' INSERT INTO event_attendance (user_id, event_id)
                     SELECT users.id, :event_id FROM users 
                     WHERE username = :username ''')
 
@@ -59,7 +59,7 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
     event_query = '''SELECT id, name, type, location, max_attendees, start, stop, cancelled
                      FROM events
                      WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
-                        AND (STRPOS(type, :type) > 0 OR :type is NULL)'''
+                    AND (STRPOS(type, :type) > 0 OR :type is NULL)'''
 
     username_query = '''SELECT events.id, name, type, location, max_attendees, start, stop
                         FROM events
