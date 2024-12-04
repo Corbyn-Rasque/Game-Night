@@ -154,7 +154,11 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
     bracket_check = text('''SELECT 1 FROM brackets
                             WHERE id = :bracket_id''')
 
-    start_check = text(''' UPDATE brackets SET started = TRUE 
+    start_check = text('''  WITH num as (
+                                SELECT count(1) as entrants FROM bracket_entrants
+                                WHERE bracket_id = :bracket_id
+                            ) 
+                        UPDATE brackets SET started = TRUE, num_players = POW(2,CEIL(LOG(2,((SELECT entrants FROM num)))))
                         WHERE id = :bracket_id
                         AND started = FALSE
                         RETURNING id''')
@@ -226,53 +230,26 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                                 FROM next_round''')
 
     bye_info = text('''  with bye_matches as (
-                              select distinct match_id from match_players
-                              join matches on match_id = matches.id
-                              WHERE player_id is null
-                              and bracket_id = :bracket_id
-                            ),
-                            byed_seeds as (
-                              select match_id, min(player_seed) as min_seed from match_players
-                              JOIN bye_matches using(match_id)
-                              group by match_id
-                            )
-                              select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
-                              JOIN match_players using(match_id)
-                              where player_seed = min_seed
-                              ORDER BY min_seed ASC
-                            ''')
+                                      select distinct match_id from match_players
+                                      join matches on match_id = matches.id
+                                      WHERE player_id is null
+                                      and bracket_id = :bracket_id
+                                    ),
+                                    byed_seeds as (
+                                      select match_id, min(player_seed) as min_seed from match_players
+                                      JOIN bye_matches using(match_id)
+                                      group by match_id
+                                    )
+                                      select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
+                                      JOIN match_players using(match_id)
+                                      where player_seed = min_seed
+                                      ORDER BY min_seed ASC
+                                    ''')
 
     winner_input = text(''' UPDATE matches SET winner_id = :player_id
                             WHERE matches.id = :match_id''')
 
-    new_match_inserts = text('''with bye_matches as (
-                                  select distinct match_id from match_players
-                                  join matches on match_id = matches.id
-                                  WHERE player_id is null
-                                  and bracket_id = :bracket_id
-                                ),
-                                byed_seeds as (
-                                  select match_id, min(player_seed) as min_seed from match_players
-                                  JOIN bye_matches using(match_id)
-                                  group by match_id
-                                ),
-                                bye_info as (
-                                  select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
-                                  JOIN match_players using(match_id)
-                                  where player_seed = min_seed
-                                )
-                                INSERT INTO matches(bracket_id)
-                                SELECT (:bracket_id)
-                                FROM generate_series(1, :amount)
-                                RETURNING id as match_id''')
 
-    match_linking = text('''WITH old_match_players as (
-                                SELECT min(id) as match_id FROM matches
-                                WHERE id < :match_id
-                                AND next_match is null
-                            )
-                            UPDATE matches SET next_match = :match_id
-                            WHERE matches.id = (SELECT match_id from old_match_players)''')
 
     clean_byes = text('''   WITH null_rows as (
                                 SELECT match_players.id as mp_id FROM match_players
@@ -299,17 +276,7 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
             byed = connection.execute(bye_info, {"bracket_id": bracket_id}).mappings().all()
             if byed:
                 connection.execute(winner_input,byed)
-                new_match_ids = connection.execute(new_match_inserts, {"bracket_id": bracket_id,"amount":(math.ceil(len(byed)//2))}).mappings().all()
-                new_match_ids.extend(list(reversed(new_match_ids)))
-                new_match_id_list = list(dict(x) for x in new_match_ids)
-                i = 0
-                for match in new_match_id_list:
-                    match["player_id"] = byed[i]["player_id"] if i<len(byed) else None
-                    match["seed"] = i+1
-                    i += 1
-                connection.execute(match_insertion, new_match_id_list)
-                connection.execute(match_linking, new_match_id_list)
-                # connection.execute(clean_byes, {"bracket_id": bracket_id})
+                connection.execute(clean_byes, {"bracket_id": bracket_id})
 
             print(result)
             return result
@@ -321,7 +288,195 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
         logger.error(f"Unexpected error seeding bracket: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
 
+
+@router.post("/{bracket_id}/round/")
+def finish_round(bracket_id:int):
+    exist_check = text('''  SELECT id as bid FROM brackets
+                            WHERE id = :bracket_id
+                            AND started = TRUE
+                            AND winner_id is null''')
+
+    bracket_done_check = text('''   select matches.id as mid from matches
+                                    where bracket_id = :bracket_id
+                                    and winner_id is null''')
+
+    new_seeding = text('''  with old_matches as (
+                            select matches.id as mid, winner_id from matches
+                            where bracket_id = :bracket_id
+                            and next_match is null
+                            and winner_id is not null
+                            )
+                              insert into matches (bracket_id)
+                              SELECT (:bracket_id) from
+                              generate_series(1, (SELECT count(1)/2 FROM old_matches))
+                            ;
+                            with old_matches as (
+                            select matches.id as mid, winner_id from matches
+                            where bracket_id = :bracket_id
+                            and next_match is null
+                            and winner_id is not null
+                            ),
+                            new_matches_mirrored as(
+                              (select matches.id as nmid from matches 
+                              where bracket_id = :bracket_id
+                              and winner_id is null
+                              order by nmid asc)
+                              union all
+                              (select matches.id as nmid from matches 
+                              where bracket_id = :bracket_id
+                              and winner_id is null
+                              order by nmid desc)
+                            ),
+                            new_matches_numbered as(
+                              select nmid,
+                              ROW_NUMBER() over (order by 1 asc) as row
+                              FROM new_matches_mirrored
+                            ),
+                            to_advance as(
+                            select mid, winner_id, player_seed as seed from match_players
+                            JOIN old_matches on mid = match_id
+                            group by mid, player_seed, winner_id
+                            having player_seed <= (select count(1) FROM old_matches)
+                            order by player_seed asc
+                            )
+                            select :bracket_id as bracket_id, nmid as match_id, winner_id, seed 
+                            from new_matches_numbered
+                            join to_advance on row = seed
+                            order by seed asc''')
+
+    match_player_insert = text('''  with next_round as(
+                                        SELECT max(round) as round FROM match_players
+                                        join matches on match_id = matches.id
+                                        where player_id = :winner_id
+                                        and bracket_id = :bracket_id
+                                    )
+                                    INSERT INTO match_players(match_id, player_id, player_seed, round)
+                                    SELECT :match_id, :winner_id, :seed, round+1
+                                    FROM next_round''')
+
+    get_next_matches = text(''' SELECT match_id, matches.id as mid from match_players
+                                join matches on player_id = winner_id
+                                where bracket_id = :bracket_id
+                                and round = 
+                                (SELECT max(round) from match_players join matches on match_id = matches.id
+                                WHERE bracket_id =:bracket_id)''')
+    match_linking = text('''UPDATE matches SET next_match = :match_id
+                            WHERE matches.id = :mid''')
+    try:
+        with db.engine.begin() as connection:
+            exits = connection.execute(bracket_done_check, {'bracket_id': bracket_id}).scalar()
+            if not exits:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Valid bracket with info given not found. Try starting bracket or getting winner.')
+            some_null = connection.execute(bracket_done_check,{"bracket_id": bracket_id}).all()
+            if some_null:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Round is not finished')
+            next_matches = connection.execute(new_seeding, {"bracket_id": bracket_id}).mappings().all()
+            connection.execute(match_player_insert,next_matches)
+            match_pairings = connection.execute(get_next_matches, {"bracket_id": bracket_id}).mappings().all()
+            connection.execute(match_linking,match_pairings)
+    except HTTPException as e:
+        logger.error(f"Bracket information not valid")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error finishing round: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error finishing round")
+
+class MatchWon(BaseModel):
+    won_by_id:int
+    match_id:int
+
+@router.post("/{bracket_id}/winner")
+def declare_winner(bracket_id:int, winner:MatchWon):
+    update_check = text('''with bracket_check as (
+                            SELECT id as bid FROM brackets
+                            WHERE id = :bracket_id
+                            AND started = TRUE
+                            ),
+                            match_check as(
+                            select matches.id as mid from bracket_check
+                            join matches on bid = bracket_id
+                            where winner_id is null 
+                            and matches.id = :match_id
+                            ), player_check as (
+                            select player_id as pid from match_check
+                            join match_players on mid = match_id
+                            and player_id = :won_by_id
+                            )
+                            update matches 
+                            set winner_id =
+                            (SELECT pid from player_check)
+                            where id = 
+                            (select mid from match_check)
+                            RETURNING winner_id''')
+
+    update_score = text('''UPDATE match_players SET score = 1
+                            WHERE player_id = :won_by_id
+                            and match_id = :match_id''')
+    try:
+        with db.engine.begin() as connection:
+            exists = connection.execute(update_check,{"bracket_id":bracket_id}|dict(winner)).scalar()
+            if not exists:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Winner or bracket info not valid')
+            connection.execute(update_score,dict(winner))
+    except HTTPException as e:
+        logger.error(f"Winner information not valid")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error updating winner: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating winner")
+
+
+
 #remove_user(4,42)
 #add_user(4, 43)
-test = SeedBounds(beginner_limit=30)
-start_bracket(4, test)
+# test = SeedBounds(beginner_limit=30)
+# start_bracket(4, test)
+# won_test = MatchWon(won_by_id = 1, match_id = 1070)
+# declare_winner(4,won_test)
+
+# finish_round(3)
+
+
+# new_match_inserts = text('''with bye_matches as (
+#                                   select distinct match_id from match_players
+#                                   join matches on match_id = matches.id
+#                                   WHERE player_id is null
+#                                   and bracket_id = :bracket_id
+#                                 ),
+#                                 byed_seeds as (
+#                                   select match_id, min(player_seed) as min_seed from match_players
+#                                   JOIN bye_matches using(match_id)
+#                                   group by match_id
+#                                 ),
+#                                 bye_info as (
+#                                   select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
+#                                   JOIN match_players using(match_id)
+#                                   where player_seed = min_seed
+#                                 )
+#                                 INSERT INTO matches(bracket_id)
+#                                 SELECT (:bracket_id)
+#                                 FROM generate_series(1, :amount)
+#                                 RETURNING id as match_id''')
+#
+#     match_linking = text('''WITH old_match_players as (
+#                                 SELECT min(id) as match_id FROM matches
+#                                 WHERE id < :match_id
+#                                 AND next_match is null
+#                             )
+#                             UPDATE matches SET next_match = :match_id
+#                             WHERE matches.id = (SELECT match_id from old_match_players)''')
+
+
+
+
+
+#
+# with old_matches as (
+# select matches.id as mid from matches
+# where bracket_id = 4
+# and next_match is null
+# )
+# select match_id, player_seed from match_players
+# JOIN old_matches on mid = match_id
+# group by match_id, player_seed
+# having player_seed <= (select count(1) FROM old_matches)
