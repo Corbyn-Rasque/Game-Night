@@ -26,10 +26,10 @@ def create_user(user: User):
                        VALUES (:username, :first, :last)
                        ON CONFLICT (username) DO NOTHING
                        RETURNING id''')
-
     try:
         with db.engine.begin() as connection:
             response = connection.execute(add_user, dict(user)).scalar_one_or_none()
+        print(f"Created new user: {user.username}")
         return dict(zip(["id"], [response]))
     except sqlalchemy.exc.IntegrityError:
         raise HTTPException(status_code=400,detail="User input violates an integrity constraint")
