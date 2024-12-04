@@ -14,7 +14,7 @@ HTTP exceptions were added along with status codes and descriptive messages thro
 
 4. In general, consider whether you want to reference a user through name or id. There are inconsistencies with that in some of the endpoints (add vs remove user, etc)
 
-We'd like to allow users to change their usernames; therefore, using them as the primary key wouldn't be ineffective. It would be too difficult to change the Primary Keys for every table.
+Endpoints were standardized to reference user ID. 
 
 5. Lots of places with commented out code, generally makes code less visually appealing
 
@@ -34,7 +34,7 @@ All parameters in the endpoints use SQL parameter binding, [[https://observableh
 
 9. There are 2 endpoints with the same function name (remove_user_contributions in items.py). Consider combining these endpoints where the request may contain the specific item, and remove all contributions if it doesn’t
 
-Correct. We have since merged the two endpoints into one with optional parameters to increase readability. 
+These endpoints were merged into one which removes a list of specified items.
 
 10. Consider documentation, each endpoint could have at least 1 line describing its purpose. This could be done with a docstring at the start of the function.
 
