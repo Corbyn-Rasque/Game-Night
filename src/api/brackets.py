@@ -210,10 +210,20 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                             JOIN all_seeds on seed = row
                             ORDER BY seed ASC''')
 
-    match_insertion = text('''  INSERT INTO match_players(match_id, player_id, player_seed, round)
-                                SELECT :match_id, :player_id, :seed, coalesce(max(round),0)+1
-                                FROM match_players
-                                WHERE player_id = :player_id''')
+    match_insertion = text('''  WITH next_round as (
+                                    SELECT 
+                                    CASE WHEN :player_id is not null 
+                                        THEN coalesce(max(round),0)+1
+                                        ELSE (SELECT MAX(round) FROM match_players
+                                                WHERE player_seed = (SELECT MIN(player_seed) FROM match_players)
+                                             )
+                                    END as round
+                                    FROM match_players
+                                    WHERE player_id = :player_id
+                                )
+                                INSERT INTO match_players(match_id, player_id, player_seed, round)
+                                SELECT :match_id, :player_id, :seed, round
+                                FROM next_round''')
 
     bye_info = text('''  with bye_matches as (
                               select distinct match_id from match_players
@@ -257,13 +267,23 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                                 RETURNING id as match_id''')
 
     match_linking = text('''WITH old_match_players as (
-                                SELECT match_id from match_players
-                                JOIN matches on match_id = matches.id
-                                WHERE round = (SELECT max(round)-1 from match_players WHERE player_id = :player_id)
-                                and player_id = :player_id
+                                SELECT min(id) as match_id FROM matches
+                                WHERE id < :match_id
+                                AND next_match is null
                             )
                             UPDATE matches SET next_match = :match_id
                             WHERE matches.id = (SELECT match_id from old_match_players)''')
+
+    clean_byes = text('''   WITH null_rows as (
+                                SELECT match_players.id as mp_id FROM match_players
+                                JOIN matches on match_id = matches.id
+                                WHERE player_id is null
+                                AND bracket_id = :bracket_id
+                                AND round = 1
+                            )          
+                            DELETE FROM match_players
+                            WHERE id in (SELECT mp_id FROM null_rows)
+                            ''')
 
     try:
         with db.engine.begin() as connection:
@@ -288,6 +308,7 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                 i += 1
             connection.execute(match_insertion, new_match_id_list)
             connection.execute(match_linking, new_match_id_list)
+            connection.execute(clean_byes, {"bracket_id": bracket_id})
             print(result)
             return result
 
