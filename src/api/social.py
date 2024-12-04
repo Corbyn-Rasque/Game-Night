@@ -61,7 +61,7 @@ def remove_friend(user_id: int, friend_id : int):
                 [{"user":user_id, "friend":friend_id}])
     except Exception:
         raise HTTPException(status_code=400, detail="Error removing friend")
-    print("removed friend :(")
+    print(f"removed friend {friend_id} from {user_id} :(")
     return (f"Removed user {friend_id}")
 
 #returns all events a user's friends are attending, along with a list of friends for each event

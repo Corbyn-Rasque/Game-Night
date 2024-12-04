@@ -32,6 +32,7 @@ def request_item(event_id: int, item: Item):
     try:
         with db.engine.begin() as connection:
             connection.execute(request, dict(item) | {'event_id': event_id})
+            print(f"Item {item} was requested for event {event_id}")
             return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400, detail="Error inserting item")
@@ -51,8 +52,8 @@ def contribute_item(event_id: int, username: str, item: Item):
         with db.engine.begin() as connection:
             if not connection.execute(check_item_exists, dict(item) | {'event_id': event_id, 'username': username}).scalar_one_or_none():
                 request_item(event_id, item)
-
             connection.execute(contribute, dict(item) | {'event_id': event_id, 'username': username})
+        print(f"User {username} contributed item {item} for event {event_id}")
         return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400, detail="Error adding contributed item")
@@ -86,7 +87,7 @@ def user_contribution(event_id: int, username: str):
     except Exception:
         raise HTTPException(status_code=400, detail="Error retrieving contributions")
 
-#remove a request
+#remove an item request
 @router.patch("/{event_id}/requests/{item_name}")
 def remove_request(event_id: int, item_name: str):
     remove_request = text('''UPDATE event_items
@@ -95,6 +96,7 @@ def remove_request(event_id: int, item_name: str):
     try:
         with db.engine.begin() as connection:
             connection.execute(remove_request, {'event_id': event_id, 'item_name': item_name})
+        print(f"Removed from event_items item {item_name} for event {event_id}")
         return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error removing item request")
@@ -108,6 +110,7 @@ def remove_user_contribution(event_id: int, username: str, item_name: str):
     try:
         with db.engine.begin() as connection:
             connection.execute(remove_contributions, {'event_id': event_id, 'username': username, 'item_name': item_name})
+        print(f"Removed all {item_name} items for user {username} at event {event_id}")
         return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error while removing items")
@@ -121,6 +124,7 @@ def remove_user_contributions(event_id: int, username: str):
     try:
         with db.engine.begin() as connection:
             connection.execute(remove_contributions, {'event_id': event_id, 'username': username})
+        print(f"Removed all user contributions for user {username} at event {event_id}")
         return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error while removing items")
@@ -134,6 +138,7 @@ def remove_all_event_contributions(event_id: int):
     try:
         with db.engine.begin() as connection:
             connection.execute(remove_contributions, {'event_id': event_id})
+        print(f"Removed all event contributions for event {event_id}")
         return {"status" : "ok"}
     except Exception:
         raise HTTPException(status_code=400, detail="Unexpected error while removing event contributions")

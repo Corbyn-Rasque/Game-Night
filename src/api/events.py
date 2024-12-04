@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from src.api import auth
 import datetime
 from sqlalchemy import text
-from sqlalchemy import exc
 from src import database as db
 from src.api import users as users
 
@@ -36,6 +35,7 @@ def create_event(event: Event):
         with db.engine.begin() as connection:
             event_id = connection.execute(create_event, dict(event)).scalar_one_or_none()
             connection.execute(event_host, {"event_id": event_id, "username" : event.host})
+        print(f"event {event_id} created. Time: {event.start}-{event.stop}. Location: {event.location}")
         return {"event_id" : event_id} if event_id else {}
     except Exception:
         raise HTTPException(status_code=400, detail="Unexpected error creating event")
@@ -50,6 +50,7 @@ def join_event(username: str, event_id: int):
     try:
         with db.engine.begin() as connection:
             connection.execute(join, {"event_id": event_id, "username" : username})
+        print(f"{username} has joined event {event_id}")
         return {"Success" : event_id} if event_id else {}
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error joining events")
@@ -69,7 +70,6 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
                         WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
                         AND (STRPOS(type, :type) > 0 OR :type is NULL)
                         AND users.username = :username'''
-
     if username: 
         final = username_query
     else: 
@@ -139,7 +139,6 @@ def get_event_brackets(event_id: int):
     except Exception:
             raise HTTPException(status_code=400, detail="Unexpected error getting event brackets")
 
-
 # Cancel an event
 @router.patch("/{event_id}")
 def cancel_event(event: int):
@@ -149,6 +148,7 @@ def cancel_event(event: int):
     try:
         with db.engine.begin() as connection:
             connection.execute(cancel_event, {"event_id": event})
+        print(f"Event {event} was canceled")
         return {"status" : "ok"}
     except Exception:
             raise HTTPException(status_code=400, detail="Unexpected error getting event")

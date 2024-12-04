@@ -28,13 +28,14 @@ def add_game(game: Game):
     try:
         with db.engine.begin() as connection:
             response = connection.execute(add_game, dict(game)).scalar_one_or_none()
+        print(f"New game added to database: {game.name}, {game.platform}, {game.publisher}")
         return dict(zip(["id"], [response]))
     except Exception:
         raise HTTPException(status_code=400,detail="Unexpected error inserting game")
 
 #retrieve a game from database
 @router.get("/{name}")
-def get_game(name: str, platform = None):
+def get_game(name: str, platform : str = None):
     get_game = """SELECT id 
                   FROM games
                   WHERE name = :name """

@@ -38,10 +38,10 @@ def create_team(name: str):
     add_team = text('''INSERT INTO teams (name)
                        VALUES (:name)
                        RETURNING id''')
-    
     try:
         with db.engine.begin() as connection:
             result = connection.execute(add_team, {"name": name}).mappings().one()
+        print(f"Created team: {result}")
         return result
     except Exception:
         raise HTTPException(status_code=400,detail="Error creating team")
@@ -54,7 +54,7 @@ def remove_team(team_id: int):
     try:
         with db.engine.begin() as connection:
             connection.execute(remove_team, {"team_id": team_id})
+        print(f"Deleted team: {team_id}")
         return {"status" : "ok"}
-        print(create_team("my favorite team :D"))
     except Exception:
         raise HTTPException(status_code=418, detail="Error deleting team")
