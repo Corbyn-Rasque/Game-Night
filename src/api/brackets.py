@@ -297,27 +297,29 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
             result = connection.execute(player_matchups, {"bracket_id": bracket_id} | bounds_dict).mappings().all()
             connection.execute(match_insertion,result)
             byed = connection.execute(bye_info, {"bracket_id": bracket_id}).mappings().all()
-            connection.execute(winner_input,byed)
-            new_match_ids = connection.execute(new_match_inserts, {"bracket_id": bracket_id,"amount":(len(byed)//2)+1}).mappings().all()
-            new_match_ids.extend(list(reversed(new_match_ids)))
-            new_match_id_list = list(dict(x) for x in new_match_ids)
-            i = 0
-            for match in new_match_id_list:
-                match["player_id"] = byed[i]["player_id"] if i<len(byed) else None
-                match["seed"] = i+1
-                i += 1
-            connection.execute(match_insertion, new_match_id_list)
-            connection.execute(match_linking, new_match_id_list)
-            connection.execute(clean_byes, {"bracket_id": bracket_id})
+            if byed:
+                connection.execute(winner_input,byed)
+                new_match_ids = connection.execute(new_match_inserts, {"bracket_id": bracket_id,"amount":(math.ceil(len(byed)//2))}).mappings().all()
+                new_match_ids.extend(list(reversed(new_match_ids)))
+                new_match_id_list = list(dict(x) for x in new_match_ids)
+                i = 0
+                for match in new_match_id_list:
+                    match["player_id"] = byed[i]["player_id"] if i<len(byed) else None
+                    match["seed"] = i+1
+                    i += 1
+                connection.execute(match_insertion, new_match_id_list)
+                connection.execute(match_linking, new_match_id_list)
+                # connection.execute(clean_byes, {"bracket_id": bracket_id})
+
             print(result)
             return result
 
     except HTTPException as e:
         logger.error(f"Bracket information not valid")
         raise e
-    # except Exception as e:
-    #     logger.error(f"Unexpected error seeding bracket: {e}")
-    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
+    except Exception as e:
+        logger.error(f"Unexpected error seeding bracket: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
 
 #remove_user(4,42)
 #add_user(4, 43)
