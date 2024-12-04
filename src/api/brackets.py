@@ -364,7 +364,7 @@ def finish_round(bracket_id:int):
                             WHERE matches.id = :mid''')
     try:
         with db.engine.begin() as connection:
-            exits = connection.execute(bracket_done_check, {'bracket_id': bracket_id}).scalar()
+            exits = connection.execute(exist_check, {'bracket_id': bracket_id}).scalar()
             if not exits:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Valid bracket with info given not found. Try starting bracket or getting winner.')
             some_null = connection.execute(bracket_done_check,{"bracket_id": bracket_id}).all()
@@ -383,31 +383,26 @@ def finish_round(bracket_id:int):
 
 class MatchWon(BaseModel):
     won_by_id:int
-    match_id:int
 
 @router.post("/{bracket_id}/winner")
 def declare_winner(bracket_id:int, winner:MatchWon):
     update_check = text('''with bracket_check as (
-                            SELECT id as bid FROM brackets
-                            WHERE id = :bracket_id
-                            AND started = TRUE
+                              SELECT id as bid FROM brackets
+                              WHERE id = :bracket_id
+                              AND started = TRUE
                             ),
-                            match_check as(
-                            select matches.id as mid from bracket_check
-                            join matches on bid = bracket_id
-                            where winner_id is null 
-                            and matches.id = :match_id
-                            ), player_check as (
-                            select player_id as pid from match_check
-                            join match_players on mid = match_id
-                            and player_id = :won_by_id
+                            match_check as (
+                              select match_id as mid from bracket_check
+                              join matches on bid = bracket_id
+                              join match_players on matches.id = match_id
+                              where winner_id is null 
+                              and player_id = :won_by_id
                             )
                             update matches 
-                            set winner_id =
-                            (SELECT pid from player_check)
+                            set winner_id = :won_by_id
                             where id = 
                             (select mid from match_check)
-                            RETURNING winner_id''')
+                            RETURNING id''')
 
     update_score = text('''UPDATE match_players SET score = 1
                             WHERE player_id = :won_by_id
@@ -417,7 +412,7 @@ def declare_winner(bracket_id:int, winner:MatchWon):
             exists = connection.execute(update_check,{"bracket_id":bracket_id}|dict(winner)).scalar()
             if not exists:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Winner or bracket info not valid')
-            connection.execute(update_score,dict(winner))
+            connection.execute(update_score,dict(winner)|{"match_id":exists})
     except HTTPException as e:
         logger.error(f"Winner information not valid")
         raise e
@@ -431,10 +426,10 @@ def declare_winner(bracket_id:int, winner:MatchWon):
 #add_user(4, 43)
 # test = SeedBounds(beginner_limit=30)
 # start_bracket(4, test)
-# won_test = MatchWon(won_by_id = 1, match_id = 1070)
+# won_test = MatchWon(won_by_id = 38)
 # declare_winner(4,won_test)
-
-# finish_round(3)
+#
+# finish_round(4)
 
 
 # new_match_inserts = text('''with bye_matches as (
