@@ -194,22 +194,22 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                                 ORDER BY seed
                             ),
                             all_matches as(
-                                (SELECT id as match_id
+                                (SELECT bracket_id, id as match_id
                                 FROM matches
                                 WHERE bracket_id = :bracket_id
                                 ORDER BY match_id desc)
                                 UNION ALL
-                                (SELECT id as match_id
+                                (SELECT bracket_id,id as match_id
                                 FROM matches
                                 WHERE bracket_id = :bracket_id
                                 ORDER BY match_id asc)
                             ),
                             numbered_matches as (
-                                SELECT match_id,
+                                SELECT bracket_id, match_id,
                                 ROW_NUMBER() over (ORDER BY 1 asc) as row
                                 FROM all_matches
                             )
-                            SELECT match_id, player_id, seed 
+                            SELECT numbered_matches.bracket_id, match_id, player_id, seed 
                             FROM numbered_matches
                             JOIN all_seeds on seed = row
                             ORDER BY seed ASC''')
@@ -219,11 +219,15 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                                     CASE WHEN :player_id is not null 
                                         THEN coalesce(max(round),0)+1
                                         ELSE (SELECT MAX(round) FROM match_players
+                                                JOIN matches on match_id = matches.id
                                                 WHERE player_seed = (SELECT MIN(player_seed) FROM match_players)
+                                                AND bracket_id = :bracket_id
                                              )
                                     END as round
                                     FROM match_players
+                                    JOIN matches on match_id = matches.id
                                     WHERE player_id = :player_id
+                                    AND bracket_id = :bracket_id
                                 )
                                 INSERT INTO match_players(match_id, player_id, player_seed, round)
                                 SELECT :match_id, :player_id, :seed, round
@@ -426,8 +430,8 @@ def declare_winner(bracket_id:int, winner:MatchWon):
 
 #remove_user(4,42)
 #add_user(4, 43)
-# test = SeedBounds(beginner_limit=0)
-# start_bracket(54, test)
+# test = SeedBounds(beginner_limit=3)
+# start_bracket(57, test)
 # won_test = MatchWon(won_by_id = 38)
 # declare_winner(4,won_test)
 #
