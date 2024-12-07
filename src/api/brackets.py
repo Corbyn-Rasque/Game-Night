@@ -293,7 +293,7 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
 
 
-@router.post("/{bracket_id}/round/")
+@router.post("/{bracket_id}/round")
 def finish_round(bracket_id:int):
     exist_check = text('''  SELECT id as bid FROM brackets
                             WHERE id = :bracket_id

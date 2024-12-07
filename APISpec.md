@@ -159,6 +159,52 @@ Retrieves a specific match in a specific bracket with all the information about 
 }
 ```
 
+### 3.5 Start Bracket `/brackets/{bracket_id}/start` (POST) *COMPLEX ENDPOINT
+Begins a bracket by creating all the matches needed appropriate to the number of players that actually entered the bracket. Works with non power of 2 numbers, for example you can start a bracket of 5 players and this endpoint will create an 8 player bracket (the next power of 2) where the remaining 3 players are byes for the top 3 seeded players. Seeding is also determined in this endpoint based on previous matches played. The endpoint automatically gives the players the bye and established matches for the first round of the bracket.
+
+**Request**
+```json
+{
+  "beginner_limit": "integer"   /*Will default to 1 for invalid values. Used for seeding formula*/
+}
+```
+
+**Response**
+```json
+[
+  {
+    "bracket_id":"integer",
+    "match_id": "integer",
+    "player_id": "integer",
+    "seed": "integer"
+  },
+  ... /*one for each player*/
+]
+```
+
+### 3.6 Finish Round `/brackets/{bracket_id}/round` (POST) *COMPLEX ENPOINT
+Advances the round of the given bracket. Will only advance if all matches in the current round of that bracket are complete. Does not work on brackets that have not been started.
+
+**Response**
+```json
+"OK"
+```
+
+### 3.7 Declare Winner `/brackets/{bracket_id}/winner` (POST) *COMPLEX ENDPOINT
+Inputs a winner into the correct match. It determines what the appropriate match is given the player and bracket. Will only work if the bracket is valid (exists and is started) and the player is still actually in the bracket (has not lost).
+
+**Request**
+```json
+{
+  "won_by_id": "integer"
+}
+```
+
+**Response**
+```json
+"OK"
+```
+
 ## 4. Games
 
 ### 4.1 Get Games `/games{?name,platform}` (GET)
