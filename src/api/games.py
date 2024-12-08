@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from src.api import auth
-from sqlalchemy import text
+from sqlalchemy import text, exc
 from src import database as db
+from typing import Optional
 
 router = APIRouter(
     prefix="/games",
@@ -18,49 +19,49 @@ class Game(BaseModel):
     release_year: int
     player_count: int
 
-@router.post("/")
+@router.post("/", status_code = status.HTTP_201_CREATED)
 def add_game(game: Game):
-
-    platforms = ['pc', 'playstation', 'xbox']
-    if not isinstance(game.release_year, int) or game.release_year <= 0:
-        response = "release_year should be a non negative Int"
-        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
-    if not isinstance(game.player_count, int) or game.player_count <= 0:
-        response = "player_count should be a non negative Int"
-        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
-    
-    if game.platform not in platforms:
-        response = f"Platform must be one of the following: {platforms}"
-        return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=response)
-    
-
-    add_game = text("""INSERT INTO games (name, platform, publisher, release_year, player_count)
-                       VALUES (:name, :platform, :publisher, :release_year, :player_count)
-                       RETURNING id
-                       """)
-
-    try :
-        with db.engine.begin() as connection:
-            game_id = connection.execute(add_game, dict(game)).scalar_one_or_none()
-    except Exception as e:
-            raise HTTPException(status_code=500, detail=f"An error occurred while inserting: {str(e.args)}")
-
-    print(f"{game.name} was successfully added to the list")
-
-    return  {"id" : game_id}
-
-
-
-@router.get("/{name}")
-def get_game(name: str, platform = None):
-
-    get_game = "SELECT id FROM games WHERE name = :name "
-    with_platform = "AND platform = :platform" if platform else ""
+    insert_game =    '''INSERT INTO games (name, platform, publisher, release_year, player_count)
+                        VALUES (:name, :platform, :publisher, :release_year, :player_count)
+                        RETURNING id'''
     
     with db.engine.begin() as connection:
-        result = connection.execute(text(get_game + with_platform), {"name": name, "platform": platform}).mappings().first()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail=f"Game: {name} was not found:")
+        try:
+            game_id = connection.execute(text(insert_game), dict(game)).mappings().one()
+            return game_id
 
-    return result    
+        except exc.IntegrityError as e:
+            error = str(e.orig)
+
+            if 'games_pkey' in error:
+                raise HTTPException(status_code = status.HTTP_409_CONFLICT, detail = 'Game already exists.')
+            elif 'name' in error:
+                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Name must not be default.')
+            elif 'platform' in error:
+                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Platform must not be default.')
+            elif 'publisher' in error:
+                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Publisher must not be default.')
+            elif 'release_year' in error:
+                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Release year must be zero or greater.')
+            elif 'player_count' in error:
+                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Player count must be one or more.')
+
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_500_INTERNAL_SERVER_ERROR, detail = 'Error inserting game.')
+
+
+@router.get("/{name}", status_code = status.HTTP_200_OK)
+def get_game(name: str, platform: Optional[str] = None):
+
+    name = f'%{name}%' if name else None
+    platform = f'%{platform}%' if platform else None
+
+    query =  '''SELECT id, name, platform, publisher, release_year, player_count
+                FROM games
+                WHERE name ILIKE :name AND (:platform IS NULL OR platform ILIKE :platform)'''
+    
+    with db.engine.begin() as connection:
+        games = connection.execute(text(query), {"name": name, "platform": platform}).mappings().all()
+    
+    if not games: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = 'No matching game found.')
+    else: return games
