@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from src.api import auth
 import datetime
-from sqlalchemy import text
+from sqlalchemy import text, exc
 from src import database as db
 import math
 import logging
@@ -29,22 +29,28 @@ class Match(BaseModel):
     winner_id: int = None
 
 
-@router.get("")
+@router.get("", status_code = status.HTTP_200_OK)
 def get_bracket(name: str = None, event_id: int = None, game_id: int = None):
+
+    if not name and not event_id and not game_id:
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'No search parameters provided.')
+
+    name = f'%{name}%' if name else None
     get_brackets = text('''SELECT name, event_id, game_id, time, match_size, num_players
                            FROM brackets
-                           WHERE name = COALESCE(:name, name)
-                               AND event_id = COALESCE(:event_id, event_id)
-                               AND game_id = COALESCE(:game_id, game_id)''')
+                           WHERE (:name IS NULL OR name ILIKE COALESCE(:name, ''))
+                                AND (:event_id IS NULL OR event_id = :event_id)
+                                AND (:game_id IS NULL OR game_id = :game_id)''')
     
     with db.engine.begin() as connection:
         results = connection.execute(get_brackets,
                                      {"name": name, "event_id": event_id, "game_id": game_id}).mappings().all()
-        
+
+    if not results: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = 'No matching bracket found.')
+
     return results
 
-
-@router.get("/{bracket_id}")
+@router.get("/{bracket_id}", status_code = status.HTTP_200_OK)
 def get_bracket_by_id(bracket_id: int):
     get_bracket = text('''SELECT name, event_id, game_id, time, match_size, num_players
                           FROM brackets
@@ -53,10 +59,12 @@ def get_bracket_by_id(bracket_id: int):
     with db.engine.begin() as connection:
         result = connection.execute(get_bracket, {"bracket_id": bracket_id}).mappings().one_or_none()
 
+    if not result.rowcount: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No such bracket.")
+
     return result
 
 
-@router.get("/{bracket_id}/matches")
+@router.get("/{bracket_id}/matches", status_code = status.HTTP_200_OK)
 def get_matches(bracket_id: int):
     match_query = text('''SELECT id
                           FROM matches
@@ -65,10 +73,12 @@ def get_matches(bracket_id: int):
     with db.engine.begin() as connection:
         results = connection.execute(match_query, {"bracket_id": bracket_id}).mappings().all()
 
+    if not results: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No bracket found for that match.") 
+
     return results
 
 
-@router.get("/{bracket_id}/players")
+@router.get("/{bracket_id}/players", status_code = status.HTTP_200_OK)
 def get_players(bracket_id: int):
     bracket_players_query = text('''SELECT DISTINCT player_id
                                     FROM match_players
@@ -78,10 +88,12 @@ def get_players(bracket_id: int):
     with db.engine.begin() as connection:
         results = connection.execute(bracket_players_query, {"bracket_id": bracket_id}).mappings().all()
 
+    if not results: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No players found for that bracket.")
+
     return results
 
 
-@router.get("/{bracket_id}/matches/{match_id}/players")
+@router.get("/{bracket_id}/matches/{match_id}/players", status_code = status.HTTP_200_OK)
 def get_match_players(bracket_id: int, match_id: int):
     match_users_query = text('''SELECT DISTINCT match_players.player_id
                                 FROM matches
@@ -92,22 +104,36 @@ def get_match_players(bracket_id: int, match_id: int):
         results = connection.execute(match_users_query, 
                                      {"bracket_id": bracket_id, "match_id": match_id}).mappings().all()
 
+    if not results: raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No players found for that match.")
+
     return results
 
 
-@router.post("")
+@router.post("", status_code = status.HTTP_201_CREATED)
 def create_bracket(bracket: Bracket):
     bracket.num_players = 1 if bracket.num_players <= 0 else 2**math.ceil(math.log2(bracket.num_players))
+
     create_bracket = text('''INSERT INTO brackets (name, event_id, game_id, time, num_players)
                              VALUES (:name, :event_id, :game_id, :time, :num_players)
                              RETURNING id''')
     with db.engine.begin() as connection:
-        result = connection.execute(create_bracket, dict(bracket)).mappings().one_or_none()
+        try: 
+            result = connection.execute(create_bracket, dict(bracket)).mappings().one_or_none()
+            connection.commit()
 
-    return result
+            return result
+        
+        except exc.IntegrityError as e:
+            connection.rollback()
 
-@router.post("/{bracket_id}/players/{user_id}")
-def add_user(bracket_id: int, user_id: str):
+            error = str(e.orig)
+            if 'name' in error:     raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Name cannot be default.') 
+            if 'event_id' in error: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Event ID does not exist.')
+            if 'game_id' in error:  raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Game ID does not exist.')
+
+
+@router.post("/{bracket_id}/players/{user_id}", status_code = status.HTTP_201_CREATED)
+def add_user(bracket_id: int, user_id: int):
     add_user = text(''' INSERT INTO bracket_entrants (bracket_id, player_id)
                         SELECT :bracket_id, :user_id
                         FROM bracket_entrants
@@ -117,36 +143,50 @@ def add_user(bracket_id: int, user_id: str):
                         RETURNING bracket_id, player_id''')
     
     with db.engine.begin() as connection:
-        result = connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id}).mappings().one_or_none()
-    print(result)
-    return "OK"
+        try:
+            connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id}).one()
+            connection.commit()
+
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'User already added to event.') 
+
+        except exc.IntegrityError as e:
+            connection.rollback()
+
+            error = str(e.orig)
+            if 'bracket_id' in error:   raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Bracket ID does not exist.') 
+            elif 'user_id' in error:    raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'User ID does not exist.') 
+            else: raise HTTPException(status_code = status.HTTP_500_INTERNAL_SERVER_ERROR, detail = 'Error adding user to bracket.') 
 
 
-@router.delete("/{bracket_id}/players/{user_id}")
+@router.delete("/{bracket_id}/players/{user_id}", status_code = status.HTTP_204_NO_CONTENT)
 def remove_user(bracket_id: int, user_id: int):
     remove_user = text('''DELETE FROM bracket_entrants
                           WHERE (bracket_id, player_id) IN ((:bracket_id, :user_id))''')
 
     with db.engine.begin() as connection:
-        connection.execute(remove_user, {"bracket_id": bracket_id, "user_id": user_id})
+        try: connection.execute(remove_user, {"bracket_id": bracket_id, "user_id": user_id}).one()
 
-    return "OK"
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'No such user in bracket.') 
 
 
-@router.delete("/{bracket_id}")
+@router.delete("/{bracket_id}", status_code = status.HTTP_204_NO_CONTENT)
 def remove_bracket(bracket_id: int):
     remove_bracket = text('''DELETE FROM brackets
                              WHERE id = :bracket_id''')
     
     with db.engine.begin() as connection:
-        connection.execute(remove_bracket, {"bracket_id": bracket_id})
+        try: connection.execute(remove_bracket, {"bracket_id": bracket_id}).one()
 
-    return "OK"
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'No such bracket.') 
+
 
 class SeedBounds(BaseModel):
     beginner_limit: int
 
-@router.post("/{bracket_id}/start")
+@router.post("/{bracket_id}/start", status_code = status.HTTP_201_CREATED)
 def start_bracket(bracket_id: int, bounds: SeedBounds):
     if bounds.beginner_limit <= 0:
         bounds.beginner_limit = 1
@@ -282,7 +322,6 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
                 connection.execute(winner_input,byed)
                 connection.execute(clean_byes, {"bracket_id": bracket_id})
 
-            print(result)
             return result
 
     except HTTPException as e:
@@ -293,7 +332,7 @@ def start_bracket(bracket_id: int, bounds: SeedBounds):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error seeding bracket")
 
 
-@router.post("/{bracket_id}/round")
+@router.post("/{bracket_id}/round", status_code = status.HTTP_201_CREATED)
 def finish_round(bracket_id:int):
     exist_check = text('''  SELECT id as bid FROM brackets
                             WHERE id = :bracket_id
@@ -389,7 +428,7 @@ def finish_round(bracket_id:int):
 class MatchWon(BaseModel):
     won_by_id:int
 
-@router.post("/{bracket_id}/winner")
+@router.post("/{bracket_id}/winner", status_code = status.HTTP_201_CREATED)
 def declare_winner(bracket_id:int, winner:MatchWon):
     update_check = text('''with bracket_check as (
                               SELECT id as bid FROM brackets
@@ -425,59 +464,3 @@ def declare_winner(bracket_id:int, winner:MatchWon):
     except Exception as e:
         logger.error(f"Unexpected error updating winner: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating winner")
-
-
-
-#remove_user(4,42)
-#add_user(4, 43)
-# test = SeedBounds(beginner_limit=3)
-# start_bracket(57, test)
-# won_test = MatchWon(won_by_id = 38)
-# declare_winner(4,won_test)
-#
-# finish_round(54)
-
-
-# new_match_inserts = text('''with bye_matches as (
-#                                   select distinct match_id from match_players
-#                                   join matches on match_id = matches.id
-#                                   WHERE player_id is null
-#                                   and bracket_id = :bracket_id
-#                                 ),
-#                                 byed_seeds as (
-#                                   select match_id, min(player_seed) as min_seed from match_players
-#                                   JOIN bye_matches using(match_id)
-#                                   group by match_id
-#                                 ),
-#                                 bye_info as (
-#                                   select :bracket_id as bracket_id, player_id, match_id, min_seed from byed_seeds
-#                                   JOIN match_players using(match_id)
-#                                   where player_seed = min_seed
-#                                 )
-#                                 INSERT INTO matches(bracket_id)
-#                                 SELECT (:bracket_id)
-#                                 FROM generate_series(1, :amount)
-#                                 RETURNING id as match_id''')
-#
-#     match_linking = text('''WITH old_match_players as (
-#                                 SELECT min(id) as match_id FROM matches
-#                                 WHERE id < :match_id
-#                                 AND next_match is null
-#                             )
-#                             UPDATE matches SET next_match = :match_id
-#                             WHERE matches.id = (SELECT match_id from old_match_players)''')
-
-
-
-
-
-#
-# with old_matches as (
-# select matches.id as mid from matches
-# where bracket_id = 4
-# and next_match is null
-# )
-# select match_id, player_seed from match_players
-# JOIN old_matches on mid = match_id
-# group by match_id, player_seed
-# having player_seed <= (select count(1) FROM old_matches)
