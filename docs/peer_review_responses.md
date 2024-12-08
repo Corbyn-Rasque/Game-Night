@@ -30,6 +30,8 @@
 
     Agreed—though with the brevity of this project, I think this is best left for a future endeavor, where this could be implemented from the beginning. Trying to implement this in the middle of the project, with all of the current branches currently being worked on, would create a number of merge conflicts that would need to be resolved.
 
+<a id = "commented-code" />
+
 6. **Remove commented code**
 
     Apologies for the amount of commented out code. It's a bad practice that I've had while writing code, creating 'code graveyards' of sort in case functionality needs to be reverted. This is something I've intentionally stopped doing as I move forwards. - Corbyn
@@ -154,6 +156,8 @@
 
     This does not need to be on the Event base model for event creating & updating. The only time the cancelled field is required is for when the event is being cancelled, where you only need an event_id. It would otherwise be redundant, as it would never be true as the event is created.
 
+<a id = "event-search-dates" />
+
 5. **Events search edge case for dates missing**
 
     It's easy to miss, but the existence of start & end times are being XOR'd for comparison and AND'd for comparison. All cases are covered.
@@ -169,6 +173,8 @@
 
     This is a great suggestion and something that I considered, but the existence of the WHERE clause makes it sos these two queries cannot be concatenated or cleaned up in a nice way. - Corbyn
 
+<a id = "sql-injection" />
+
 8. **Concern about concatenating queries opening up risk of SQL Injection**
 
     While the code refered to here wouldn't allow for SQL Injection due to the way SQLAlchemy does parameter binding, the code has none-the-less be refactored to condense the query parts into a single query now.
@@ -178,6 +184,8 @@
 
     Implemented as requested, using ILIKE comparison operator and returning all matches instead of one.
     https://github.com/Corbyn-Rasque/Game-Night/blob/839e0df2d27cc44256a82290a2bad631a38a7cd0/src/api/games.py#L53-L67
+
+<a id = "contribution-removal-duplication" />
 
 10. **Add helper functions for removing one user contribution, or all user contributions**
 
@@ -214,6 +222,8 @@
 3. **For Teams, it should be specified how players are distributed.**
 
     The Teams endpoint has been deprecated in favor of a solution integrated with Brackets. This endpoint handles the scenario you talk about much closer to real life event brackets with byes/etc.
+
+<a id = "match-state" />
 
 4. **Match state for tracking match progress**
 
@@ -253,6 +263,8 @@
 
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/6)
 
+<a id = "player-performance-tracking" />
+
 1. Create a player performance analytics endpoint.
 
     I love love love this idea, but it would simply be too complex an endpoint to implement on top of creating the brackets system we are targeting to implement. While we can implement it this project, this would be a great idea to try for in the future! - Corbyn
@@ -264,8 +276,121 @@
 ## Samiksha Karimbil
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/7)
+
+1. **Consider wrapping gets in a try/except block to avoid issues with the database.**
+
+    See [earlier response](#response-codes).
+
+2. **Some of the endpoints return “OK”, such as the cancel event, request/contribute item or remove items endpoints. Consider standardizing the responses with JSON objects for consistency.**
+
+    See [earlier response](#response-codes).
+
+3. **Consider using HTTP status codes for error handling along with descriptive messages.**
+
+    See [earlier response](#response-codes).
+
+4. **In general, consider whether you want to reference a user through name or id. There are inconsistencies with that in some of the endpoints (add vs remove user, etc).**
+
+    This advice is honestly really solid, and soemthing I've run into when doing another project that involved both front end and back end interacting with eachother. With this project, however, we don't really have a front end displaying data, so it's hard to tell whether using ID or Username would be more useful for getting data. If we evolve towards getting a front end set up, I think this would be very much worth revisiting. - Corbyn
+
+5. **Lots of places with commented out code, generally makes code less visually appealing**
+
+    See [earlier response](#commented-code)
+
+6. **Consider print statements for logging purposes.**
+
+    While this idea is great, we have switched tack a bit and have largely switched to use proper response codes to communicate success or failure.
+
+7. **In get_event, not all cases for start and end time were considered, like if one of the times is not provided or if they are the same.**
+
+    See [earlier response](#event-search-dates)
+
+8. **SQL injections are a possibility with name, type, username or platform.**
+
+    See [earlier response](#sql-injection)
+
+9. **There are 2 endpoints with the same function name (remove_user_contributions in items.py). Consider combining these endpoints where the request may contain the specific item, and remove all contributions if it doesn’t.**
+
+    See [earlier response](#contribution-removal-duplication)
+
+10. **Consider documentation, each endpoint could have at least 1 line describing its purpose. This could be done with a docstring at the start of the function.**
+
+    This is one area where we could have done a bit better. Without getting into it too much, most of our group has a professor that docs points for leaving any code comments, so this behavior has unfortunately spilled over onto this project. I will go through and try to update the docstrings for each endpoint though, as they are extremely useful for understanding what's going on in a veritale sea of endpoints.
+
+<a id = "valid-value-constraints" />
+
+11. **Fields like username, event id, item name could all be validated to ensure correct data types and avoid invalid entries.**
+
+    Value constraints have been added across all tables to prevent default values and invalid numeric values.
+
+12. **Instead of permanently deleting things like teams or items, consider adding in a deleted column to sort of ledgerize data and view history.**
+
+    This suggestion is great, and is one we have implemented across Items, Events, and Users!
+
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/8)
+
+1. **If username must be unique, consider making that be the primary key of the user table.**
+
+    See [earlier response](#uniqueness-constraint-necessity).
+
+2. **The get_user_by_username and get_user_by_id endpoints seem redundant.**
+
+    While on the outset these seem redundant, these are useful to use as helper functions for other functions. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/839e0df2d27cc44256a82290a2bad631a38a7cd0/src/api/users.py#L74-L84
+
+3. **If the ‘id’ column of games must be unique, consider having that alone be the primary key of the games table.**
+
+    This is something we're definitely still debating over, but since we are still using the `name` and `platform` fields as a composite key to find games, we are simply keeping those as the primary composite key. The id column is simply there to make foreign keys a little less gross in other tables. But yes, this is somewhat duplicative.
+
+4. **Ensure quantity of items is a valid non-negative value.**
+
+    See [earlier response](#valid-value-constraints).
+
+5. **Ensure the release_year column has valid year values that are non-negative and before current year.**
+
+    See [earlier response](#valid-value-constraints).
+
+6. **It doesn’t seem like users first and last name are being used, consider having a full name column for simplicity.**
+
+    This is something that will ultimately depend on how a front end is written, but having first and last name separate is nice for having 'friendly' names to refer to users across the platform, without string tokenization required every time.
+
+7. **Ensure that there are no duplicate brackets by having the event id and game id pair be unique.**
+
+    This is already implemented as it stands.
+
+8. **Some inconsistencies with naming conventions, stick to one type (lower case / camel case / snake case).**
+
+    See [earlier response](#code-formatting).
+
+9. **For the games table, platform, publisher, release_year and player_count don’t seem to be necessary information to store. Maybe it is nice for informational purposes, but in general seems to add no value to the API.**
+
+    Respectfully, we disagree here. These are all important pieces of information needed for putting together a party, where people need to know what controllers or consoles to brings, or if they can even compete in the event. The value is more in displaying to the user, which would necessitate a front end to implement that. For now, the information lies dormant until something like that coalesces.
+
+10. **Ensure start time of events is always before stop time.**
+
+    This has been added as a constraint to the Events table.
+
+11. **I don’t currently see any reference to teams anywhere in the API design outside teams.py.**
+
+    This is largely a result of Teams heading towards deprecation at the time of this review, with dependencies being removed. Teams has now been fully deprecated. Sharp eye, though!
+
+12. **Consider having event/bracket statuses, where it can say if the event or bracket match is in progress, completed or canceled.**
+
+    See [earlier response](#match-state).
+
+13. **Consider a table to standardize the possible event types.**
+
+    See [earlier response](#value-constraints).
+
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/9)
+
+1. **Ranking system based on tournament outcome suggestion.**
+
+    See [earlier response](#player-performance-tracking)
+
+2. **Guest List implementation**
+
+    This could be a really fun addition and would really enhance the app's overall appeal as an event organize above all else. At this point, getting Brackets set up has taken up a substantial chunk of time and we likely won't be able to implement this in time, but it's a great idea and wouldn't take too much effort to implement!
 
 ## Ivana Thomas
 
