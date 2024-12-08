@@ -36,7 +36,6 @@ app.include_router(brackets.router)
 app.include_router(events.router)
 app.include_router(games.router)
 app.include_router(items.router)
-app.include_router(teams.router)
 app.include_router(users.router)
 app.include_router(social.router)
 
