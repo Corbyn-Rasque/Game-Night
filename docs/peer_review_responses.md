@@ -131,6 +131,21 @@
 ## Antony Tartakovskiy
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/3)
+
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
+10. 
+11. 
+12. 
+13. 
+
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/4)
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/6)
 

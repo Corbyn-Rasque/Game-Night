@@ -10,8 +10,8 @@ Fetches user information based on a provided `username` or `id`. If neither is p
 
 ```json
 {
-  "id":"integer",
-  "username":"string",
+  "id": "integer",
+  "username": "string",
 }
 ```
 
@@ -22,7 +22,7 @@ Creates a new user that must have a unique username and will be given a unique i
 
 ```json
 {
-  "username":"string",
+  "username": "string",
   "first": "string",
   "last": "string",
 }
