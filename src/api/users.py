@@ -1,9 +1,8 @@
-from fastapi import HTTPException, APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from src.api import auth
-from sqlalchemy import text
+from sqlalchemy import text, exc
 from src import database as db
-from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 
 
@@ -19,64 +18,60 @@ class User(BaseModel):
     first: str
     last: str
 
-@router.post("/")
+@router.post("", status_code = status.HTTP_201_CREATED)
 def create_user(user: User):
-    add_user = text('''INSERT INTO users (username, first, last)
-                       VALUES (:username, :first, :last)
-                       ON CONFLICT (username) DO NOTHING
-                       RETURNING id''')
+    add_user =   '''INSERT INTO users (username, first, last)
+                    VALUES (:username, :first, :last)
+                    ON CONFLICT (username) DO NOTHING
+                    RETURNING id'''
 
     with db.engine.begin() as connection:
-        response = connection.execute(add_user, dict(user)).scalar_one_or_none()
+        try: response = connection.execute(text(add_user), dict(user)).mappings().one()
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_409_CONFLICT, detail = 'User already exists.')
 
-    return dict(zip(["id"], [response]))
+    return response
 
-def get_user(parameter):
-    id = parameter if isinstance(parameter, int) else None
-    username = parameter if isinstance(parameter, str) else None
-    get_user = text('''SELECT id, username
-                       FROM users 
-                       WHERE id = :id OR username = :username''')
+@router.get("", status_code = status.HTTP_200_OK)
+def get_user(username: Optional[str] = None, id: Optional[int] = None):
+    query =  '''SELECT id, username
+                FROM users
+                WHERE (:username IS NULL OR username = :username)
+                    AND (:id IS NULL OR id = :id)'''
 
     with db.engine.begin() as connection:
-        result = connection.execute(get_user, {"id": id, "username": username}).mappings().first()
+        try: result = connection.execute(text(query), {"username": username, "id": id}).mappings().one()
+        except exc.NoResultFound:
+            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No user found.")
+        except exc.MultipleResultsFound:
+            raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'No search parameters provided.')
+    
+    return result
 
-    return result if result else {}
 
-
-@router.get("/")
-def get_user_info(username: Optional[str] = None, id: Optional[int] = None):
-    if username:
-        return get_user (username)
-    elif id:
-        return get_user (id)
-    else:
-        return {}
-
-@router.get("/{username}/events")
+@router.get("/{username}/events", status_code = status.HTTP_200_OK)
 def get_user_events(username: str):
     """ returns all events a user registered to participate in"""
-    user_events = text('''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
-                          FROM event_attendance
-                          JOIN events ON events.id = event_attendance.event_id
-                          JOIN users ON users.id = event_attendance.user_id
-                          WHERE users.username = :username''')
+    user_events =    '''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
+                        FROM event_attendance
+                        JOIN events ON events.id = event_attendance.event_id
+                        JOIN users ON users.id = event_attendance.user_id
+                        WHERE users.username = :username'''
     
     with db.engine.begin() as connection:
-        result = connection.execute(user_events, {"username": username}).mappings().all()
+        result = connection.execute(text(user_events), {"username": username}).mappings().all()
+
+    if not result: HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "No events found.")
 
     return result
 
-@router.patch("/{username}")
-def deactivate_user(user_id: int):
+
+@router.patch("/{username}", status_code = status.HTTP_204_NO_CONTENT)
+def deactivate_user(username: int):
     remove_user =   text('''UPDATE users
                             SET active = FALSE
-                            WHERE id = :user_id AND active IS NOT FALSE''')
+                            WHERE username = :username AND active IS NOT FALSE''')
     
     with db.engine.begin() as connection:
-        result = connection.execute(remove_user, {"user_id": user_id})
-    
-    if (not result):
-        HTTPException(status_code=400, detail="Error retrieving friend events")
-
-    return bool(result.rowcount)
+        try: connection.execute(remove_user, {"username": username}).one()
+        except exc.NoResultFound: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = "Invalid username.")
