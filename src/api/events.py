@@ -55,19 +55,25 @@ def join_event(username: str, event_id: int):
 
 # Get event details by date 
 @router.get("")
-def get_event(name: str = None, username: str = None, type: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
-    event_query = '''SELECT id, name, type, location, max_attendees, start, stop, cancelled
+def get_event(name: str = None, username: str = None, game: str = None, type: str = None, start: datetime.datetime = None, stop: datetime.datetime = None):
+    event_query = '''SELECT events.id, events.name, games.name AS game, type, location, max_attendees, start, stop, cancelled
                      FROM events
-                     WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
-                    AND (STRPOS(type, :type) > 0 OR :type is NULL)'''
-
-    username_query = '''SELECT events.id, name, type, location, max_attendees, start, stop
-                        FROM events
-                        JOIN user_events ON user_events.event_id = id
-                        JOIN users ON users.id = user_events.user_id
-                        WHERE (STRPOS(name, :name) > 0 OR :name is NULL)
+                     JOIN brackets ON brackets.event_id = events.id
+                     JOIN games ON games.id = brackets.game_id
+                     WHERE (STRPOS(events.name, :name) > 0 OR :name is NULL)
                         AND (STRPOS(type, :type) > 0 OR :type is NULL)
-                        AND users.username = :username'''
+                        AND (STRPOS(games.name, :game) > 0 OR :game is NULL)'''
+
+    username_query = '''SELECT events.id, events.name, type, location, max_attendees, start, stop
+                        FROM events
+                        JOIN brackets ON brackets.event_id = events.id
+                        JOIN games ON games.id = brackets.game_id
+                        JOIN user_events ON user_events.event_id = events.id
+                        JOIN users ON users.id = user_events.user_id
+                        WHERE (STRPOS(events.name, :name) > 0 OR :name is NULL)
+                            AND (STRPOS(type, :type) > 0 OR :type is NULL)
+                            AND (STRPOS(games.name, :game) > 0 OR :game is NULL)
+                            AND users.username = :username'''
 
     if username: final = username_query
     else: final = event_query
@@ -80,10 +86,11 @@ def get_event(name: str = None, username: str = None, type: str = None, start: d
 
     with db.engine.begin() as connection:
         result = connection.execute(text(final),
-                                    {"name": name, "username": username, "type": type, "start": start, "stop": stop}).mappings().all()
+                                    {"name": name, "username": username, "game": game, "type": type, "start": start, "stop": stop}).mappings().all()
 
     return result if result else {}
 
+print(*get_event(username= "CorbynR", game="Mario Kart"), sep='\n')
 
 # Get event details by event id
 @router.get("/{event_id}")
