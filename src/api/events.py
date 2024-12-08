@@ -90,8 +90,6 @@ def get_event(name: str = None, username: str = None, game: str = None, type: st
 
     return result if result else {}
 
-print(*get_event(username= "CorbynR", game="Mario Kart"), sep='\n')
-
 # Get event details by event id
 @router.get("/{event_id}")
 def get_event_by_id(event_id: int):
