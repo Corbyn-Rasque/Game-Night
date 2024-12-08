@@ -99,7 +99,8 @@ def get_event(name: Optional[str] = None, username: Optional[str] = None, game: 
                      JOIN games ON games.id = brackets.game_id
                      WHERE (STRPOS(events.name, :name) > 0 OR :name is NULL)
                         AND (STRPOS(type, :type) > 0 OR :type is NULL)
-                        AND (STRPOS(games.name, :game) > 0 OR :game is NULL)'''
+                        AND (STRPOS(games.name, :game) > 0 OR :game is NULL)
+                        AND events.cancelled = FALSE'''
 
     username_query = '''SELECT events.id, events.name, type, location, max_attendees, start, stop
                         FROM events
@@ -110,7 +111,8 @@ def get_event(name: Optional[str] = None, username: Optional[str] = None, game: 
                         WHERE (STRPOS(events.name, :name) > 0 OR :name is NULL)
                             AND (STRPOS(type, :type) > 0 OR :type is NULL)
                             AND (STRPOS(games.name, :game) > 0 OR :game is NULL)
-                            AND users.username = :username'''
+                            AND users.username = :username
+                            AND events.cancelled = FALSE'''
 
     if username: query = username_query
     else: query = event_query
