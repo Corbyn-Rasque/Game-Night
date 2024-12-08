@@ -111,27 +111,37 @@
     Implemented below.
     https://github.com/Corbyn-Rasque/Game-Night/blob/b71e092e8da4612b510c8fb0fc69af8f6da91f40/src/api/items.py#L55
 
-### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/15)
 
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/17)
+
+1. Making an endpoint to see all events by game may be interesting
+
+    Implemented below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/a1ea6d3882d9020ef0c1eb1de78d5b5700c90b54/src/api/events.py#L57-L91
+
+2. Make an endpoint to delete a User.
+
+    Implemented below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/029c6e3c4b5dfa7f81c44d653f7067b98d6b50bf/src/api/users.py#L70-L82
+
+3. Implement leaderboard system that shows how many brackets a user has won.
+
+    This is a fantastic idea! We were so close to being able to implement something like this, but with limited time at the end and some very large, sweeping changes to the brackets system under the hood, we unfortunately weren't able to implement this. But everything is there to do it.
 
 ## Antony Tartakovskiy
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/3)
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/4)
-### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/5)
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/6)
 
 ## Samiksha Karimbil
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/7)
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/8)
-### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/10)
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/9)
 
 ## Ivana Thomas
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/13)
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/14)
-### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/11)
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/12)
