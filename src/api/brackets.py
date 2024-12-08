@@ -448,9 +448,15 @@ def declare_winner(bracket_id:int, winner:MatchWon):
                             (select mid from match_check)
                             RETURNING id''')
 
-    update_score = text('''UPDATE match_players SET score = 1
+    update_score = text(''' WITH null_check as(
+                                SELECT count(match_id) as count_match FROM match_players
+                                WHERE match_id = :match_id
+                                AND player_id is not null
+                            )
+                            UPDATE match_players SET score = 1
                             WHERE player_id = :won_by_id
-                            and match_id = :match_id''')
+                            and match_id = :match_id
+                            and (SELECT count_match FROM null_check) > 1''')
     try:
         with db.engine.begin() as connection:
             exists = connection.execute(update_check,{"bracket_id":bracket_id}|dict(winner)).scalar()
