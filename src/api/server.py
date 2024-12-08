@@ -1,7 +1,7 @@
 from fastapi import FastAPI, exceptions
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from src.api import brackets, events, games, items, teams, users, social
+from src.api import brackets, events, games, items, users, social
 import json
 import logging
 import sys
