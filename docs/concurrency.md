@@ -22,4 +22,6 @@ This is thankfully automatically handled because we are using postgres which doe
 It is possible to declare a winner when the bracket is being started where in a player that normally would get a bye (which should not increase their seed score because a bye does not count as a win) instead is declared a winner of their respective match. 
 This would not change the current bracket at all because they would still just advance to the next round, but the data would be incorrect and had that row been read before the winner is declared and once the bracket starts it would be different.
 
-Postgres could handle this with snapshots, however for this specific example the simplest solution was simply to check that the count of matches that have the given match id and do not have a null player_id. This is because each match_id will be represented twice on this table one for each player, but if the player_id is null, that will be used to give the opponent a bye.
+Postgres could handle this with snapshots, however for this specific example the simplest solution was simply to check that the count of matches that have the given match id and do not have a null player_id equals 2. This is because each match_id will be represented twice on this table one for each player, but if the player_id is null, that will be used to give the opponent a bye.
+
+![Concurrency Case 3 Diagram](./images/case3.png)
