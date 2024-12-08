@@ -113,27 +113,25 @@
 
 ### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/15)
 
-
-
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/17)
 
 ## Antony Tartakovskiy
 
-### Code Review
-### Schema/API Design Comments
-### Test Results
-### Product Ideas
+### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/3)
+### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/4)
+### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/5)
+### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/6)
 
 ## Samiksha Karimbil
 
-### Code Review
-### Schema/API Design Comments
-### Test Results
-### Product Ideas
+### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/7)
+### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/8)
+### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/10)
+### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/9)
 
 ## Ivana Thomas
 
-### Code Review
-### Schema/API Design Comments
-### Test Results
-### Product Ideas
+### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/13)
+### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/14)
+### [Test Results](https://github.com/Corbyn-Rasque/Game-Night/issues/11)
+### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/12)
