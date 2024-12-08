@@ -66,11 +66,19 @@
 
 1. **Optional but some endpoints are both updating and inserting, consider separating these for clarity**
 
+    While this makes sense at in principle, it's largely just duplicating code. One post can handle both, and the assumption with posting is that the user currently wants to contribute X amount for Y item, regardless of what any previous value might have been. The user doesn't care what about previous values, and returning different values if updating versus insert could be easily implemented on the front end, depending on what's creating the post.
+
 2. **Validate input like payment, quantity, etc.**
+
+    Constraints added to the event_items and item_contributions table to handle this. Name and Type cannot be default values, quantity (both tables) must be one or more, and cost must be zero or more. Invalid username, event_id, item_name, or quantity are handled correctly with response codes.
 
 3. **Standardize responses (either “OK” or rows); if OK, use status code instead**
 
+    See above. Proper reponse codes implemented.
+
 4. **`/{event_id}/contributions/{username}/{item_name}` Soft DELETE; use PATCH instead.**
+
+    Implemented as described.
 
 ### Teams
 
