@@ -129,6 +129,8 @@
     Implemented below.
     https://github.com/Corbyn-Rasque/Game-Night/blob/029c6e3c4b5dfa7f81c44d653f7067b98d6b50bf/src/api/users.py#L70-L82
 
+<a id = "leaderboard" />
+
 3. Implement leaderboard system that shows how many brackets a user has won.
 
     This is a fantastic idea! We were so close to being able to implement something like this, but with limited time at the end and some very large, sweeping changes to the brackets system under the hood, we unfortunately weren't able to implement this. But everything is there to do it.
@@ -179,6 +181,8 @@
 
     While the code refered to here wouldn't allow for SQL Injection due to the way SQLAlchemy does parameter binding, the code has none-the-less be refactored to condense the query parts into a single query now.
     https://github.com/Corbyn-Rasque/Game-Night/blob/839e0df2d27cc44256a82290a2bad631a38a7cd0/src/api/games.py#L53-L67
+
+<a id = "game-search" />
 
 9. **Returning a set of games, given multiple query matches, versus just a single game.**
 
@@ -289,6 +293,8 @@
 
     See [earlier response](#response-codes).
 
+<a id = "id-return" />
+
 4. **In general, consider whether you want to reference a user through name or id. There are inconsistencies with that in some of the endpoints (add vs remove user, etc).**
 
     This advice is honestly really solid, and soemthing I've run into when doing another project that involved both front end and back end interacting with eachother. With this project, however, we don't really have a front end displaying data, so it's hard to tell whether using ID or Username would be more useful for getting data. If we evolve towards getting a front end set up, I think this would be very much worth revisiting. - Corbyn
@@ -395,5 +401,106 @@
 ## Ivana Thomas
 
 ### [Code Review](https://github.com/Corbyn-Rasque/Game-Night/issues/13)
+
+1. **When canceling an event, the event still shows up in `@GET/events/{event_id}` and looks the same as an active event. If a boolean is going to be used to handle cancellation, it would be good to return that to the user as well.**
+
+    I honestly am not sure how that slipped through; thanks for pointing that out! A filter for cancelled events has been added to the Events search endpoint (see bellow)!
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/events.py#L95-L115
+
+2. **There could be more error handling: try/except or adding print statements to your render log.**
+
+    See [earlier response](#response-codes).
+
+3. **In items/contributions, for a reset from the user/event maybe remove the row instead of using a boolean? Or, could insert a negative quantity to simplify any aggregation that might be needed at some point?**
+
+    For Item Contributions, we tried to pattern the table around a ledgerized system, where (similar to what you mention) we could aggregate the values to get a current answer at any given time. Given that, it's useful to keep around 'removed' contributions to retain a history of sorts, in case the user what's the undo the delete easily or see previous promises.
+
+4. **For /events upon event creation, a more detailed response (so we know that the response is the event id).**
+
+    See [earlier response](#response-codes).
+
+5. **In `@POST/brackets`, the API Spec doesn’t match the request body in the deployed url. `event_id` is clear, but `game_id` is a little bit confusing.**
+
+    This has been updated to be more clear. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/brackets.py#L112-L132
+
+6. **Despite use of `ON CONFLICT`, I was able to insert the exact same Fortnite entry into `games`, with the same platform, publisher, release year, and player count 4 times and got 4 separate ids.**
+
+    This has been fixed in the latest update. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/games.py#L22-L50
+
+7. **Searching by Username only in `/events` results in a `500 internal server error`.**
+
+    This has been fixed in the latest update. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/games.py#L53-L67
+
+8. **Creating a bracket for an event_id that doesn’t exist in `@POST/brackets` results in a `500 internal error`.**
+
+    This has been fixed in the latest update. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/brackets.py#L112-L132
+
+9. **`@GET/users/{user_id}` is returning `{}`. Per API spec, it appears it should return username and id.**
+
+    This has been fixed in the latest update. See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/users.py#L41-L55
+
+10. **Super minor: datetime is imported into games, but not used**
+
+    Superfluous datetime import has been removed! See below.
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/games.py#L1-L7
+
+
 ### [Schema/API Design Comments](https://github.com/Corbyn-Rasque/Game-Night/issues/14)
+
+1. **For teams, what if multiple teams have the same name? Is this something that is allowed, or should some checking be implemented?**
+
+    While this might change in the future, for now we are allowing teams with the same name. Many time, team names are not super unique, so it would result in a lot of name collissions if we did.
+
+2. **Additionally, there could be more integration of teams into the events/brackets. How many teams is an event allowed to have? In a bracket, must the players be on opposing teams?**
+
+    This is something we've really wanted to do, but ultimately likely won't have time to implement. Bracket has been subversive in it's complexity, so automatic team seeding may have to wait for another day. It may also be a bit of a NP incomplete problem, but I'm not sure of that.
+
+3. **In get_team_players, we are only returning a dictionary with the players ids, per the class Team_Player. It might be more helpful to also include and then return their name for human readability.**
+
+    See [earlier response](#id-return).
+
+4. **More could be done with payment on contribute_item– perhaps users could have a certain amount of money to spend?**
+
+    This is a good idea, but forays too much into money management and away from the core aspects of the event planning idea for Game Night.
+
+5. **For @POST/brackets, maybe there could be different endpoints for games vs events?**
+
+    As it standard currently, you can implicitly differentiate between games & events by whether or not a bracket has been associated with the event.
+
+<a id = "user-event-attendance" />
+
+6. **In @POST/brackets/{bracket_id}/matches/ … match_id is unclear in the scope of hosting an event such as a party.**
+
+    Agreed; originally the only way someone could attend an event was through a match. Now someone can directly attend an event, without needing to join a bracket.
+
+7. **It also appears that there may not be a way to create a match.**
+
+    This has been resolved through an overhaul of the Brackets & Match system in the time since.
+
+8. **Implement a way for users to be associated with events, even if there is no matches or brackets for the event yet, especially in situations which may not require brackets/matches at all.**
+
+    See [earlier response](#user-event-attendance).
+
+9. **It might be useful to provide functionality to get all the games at once in @GET/games/{name} so a user could browse what games are already in the system instead of having to search for games.**
+
+    See [earlier response](#game-search).
+
+10. **Along the same lines of implementing the creation of matches, the winners of the match are already being stored! Something could be done with this, such as making a leaderboard or simply a GET for the endpoint.**
+
+    See [earlier response](#leaderboard).
+
 ### [Product Ideas](https://github.com/Corbyn-Rasque/Game-Night/issues/12)
+
+1. **A social aspect would be fun; users could add other users as a friend and join the same events/brackets as them.**
+
+    Fantastic idea! This has been implemented!
+    https://github.com/Corbyn-Rasque/Game-Night/blob/e40e67747038c95e6ff85e7ff3baf0010bf6721b/src/api/social.py
+
+2. **A moderator endpoint could be useful for the gaming aspect of things, where a mode could be assigned to group to look out for cheating/etc.**
+
+    That'd honestly be a super cool idea, especially for if the app every gets used for things like Dungeons & Dragons (TM) (don't want to anger the lawyers of Wizards of the Coast…). This idea is a bit much to implement for us this time around, but would be a great idea for the future!
