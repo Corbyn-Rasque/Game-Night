@@ -57,7 +57,6 @@ def get_user(username: Optional[str] = None, id: Optional[int] = None):
 
 @router.get("/{username}/events", status_code = status.HTTP_200_OK)
 def get_user_events(username: str):
-    """ returns all events a user registered to participate in"""
     user_events =    '''SELECT events.id, events.name, events.type, events.location, events.max_attendees, events.start, events.stop
                         FROM event_attendance
                         JOIN events ON events.id = event_attendance.event_id
@@ -73,7 +72,7 @@ def get_user_events(username: str):
 
 
 @router.patch("/{username}", status_code = status.HTTP_204_NO_CONTENT)
-def deactivate_user(username: int):
+def deactivate_user(username: str):
     remove_user =   text('''UPDATE users
                             SET active = FALSE
                             WHERE username = :username AND active IS NOT FALSE''')

@@ -32,7 +32,6 @@ def request_new_item(event_id: int, item: Item):
     with db.engine.begin() as connection:
         try:
             connection.execute(text(request), dict(item) | {'event_id': event_id}).one()
-            return "OK"
         except exc.IntegrityError as e:
             error = str(e.orig)
 
@@ -82,7 +81,6 @@ def remove_item_request(event_id: int, name: str):
 
         if not result.rowcount:
             raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Event ID or Item doesn\'t exist')
-        else: return "OK"
 
 
 @router.get("/{event_id}/{username}", status_code = status.HTTP_200_OK)
@@ -119,7 +117,6 @@ def contribute_item(event_id: int, username: str, item: Item):
             result = connection.execute(text(add_item), dict(item) | {'event_id': event_id, 'username': username})
 
             if not result.rowcount: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Unable to add item.')
-            else: return "OK"
         
         except exc.IntegrityError as e:
             error = str(e.orig)
@@ -140,4 +137,3 @@ def remove_user_contributions(event_id: int, username: str, item_name: str):
         result = connection.execute(text(remove_item), {'event_id': event_id, 'username': username, 'item_name': item_name})
 
         if not result.rowcount: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'No matching contribution found.')
-        else: return "OK"
