@@ -66,3 +66,17 @@ def get_user_events(username: str):
         result = connection.execute(user_events, {"username": username}).mappings().all()
 
     return result
+
+@router.patch("/{username}")
+def deactivate_user(user_id: int):
+    remove_user =   text('''UPDATE users
+                            SET active = FALSE
+                            WHERE id = :user_id AND active IS NOT FALSE''')
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(remove_user, {"user_id": user_id})
+    
+    if (not result):
+        HTTPException(status_code=400, detail="Error retrieving friend events")
+
+    return bool(result.rowcount)
