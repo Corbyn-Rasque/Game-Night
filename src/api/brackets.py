@@ -81,7 +81,7 @@ def get_players(bracket_id: int):
     return results
 
 
-@router.get("/{bracket_id}/matches/{match_id}/players/")
+@router.get("/{bracket_id}/matches/{match_id}/players")
 def get_match_players(bracket_id: int, match_id: int):
     match_users_query = text('''SELECT DISTINCT match_players.player_id
                                 FROM matches
