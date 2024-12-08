@@ -9,4 +9,8 @@ To address this, we ensured that the match winner is only updated within the sam
 ![Concurrency Case 1 Diagram](./images/case1.png)
 
 
-##
+## Dirty Read
+### There is an attempt to start a bracket but it fails due to incorrect parameters and an attempt with correct parameters is also called right after
+Say for the beginner_limit in /brackets/{bracket_id}/start is 0 and thus creates a divide by 0 error (assuming the formula did not account for a 0 in the denominator). But because that SQL statement happens after the statement that updates the start status of the bracket from false to true, if a corrected call is made before the incorrect one fails and the corrected call reads the uncommitted start status, it would also error out because the bracket would be seen as already started even if its uncommited.
+
+This is thankfully automatically handled because we are using postgres which does not have a read uncommited isolation level, instead the default and lowest isolation level is read committed which does not allow transactions to read updates in transactions that have not fully finished successfully (say it errors out). This completely prevents dirty reads from happening.
