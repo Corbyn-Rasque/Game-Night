@@ -26,11 +26,17 @@ def create_user(user: User):
                     RETURNING id'''
 
     with db.engine.begin() as connection:
-        try: response = connection.execute(text(add_user), dict(user)).mappings().one()
+        try:
+            response = connection.execute(text(add_user), dict(user)).mappings().one()
+            return response
         except exc.NoResultFound:
             raise HTTPException(status_code = status.HTTP_409_CONFLICT, detail = 'User already exists.')
+        except exc.IntegrityError as e:
+            error = str(e.orig)
+            if 'username' in error: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Cannot have default username.')
+            elif 'first' in error:  raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Cannot have first name.')
+            elif 'last' in error:   raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Cannot have last name.')
 
-    return response
 
 @router.get("", status_code = status.HTTP_200_OK)
 def get_user(username: Optional[str] = None, id: Optional[int] = None):
