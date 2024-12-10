@@ -9,10 +9,10 @@ def mill_users(amount:int):
     user_list = []
     for i in range(amount):
         user_list.append(
-            users.User(username=unames[i], firstname=names[i][0], lastname=names[i][1])
+            users.User(username=unames[i], first=names[i][0], last=names[i][1])
         )
     return user_list
 
-new_users = mill_users(333333)
+new_users = mill_users(300)
 
 users.create_user(new_users)

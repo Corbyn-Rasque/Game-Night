@@ -25,9 +25,11 @@ def create_user(user: list[User]):
                     ON CONFLICT (username) DO NOTHING
                     RETURNING id'''
 
+    user = [dict(u) for u in user]
+
     with db.engine.begin() as connection:
         try:
-            response = connection.execute(text(add_user), dict(user)).mappings().one()
+            response = connection.execute(text(add_user), user).mappings().one()
             return response
         except exc.NoResultFound:
             raise HTTPException(status_code = status.HTTP_409_CONFLICT, detail = 'User already exists.')
