@@ -19,7 +19,7 @@ class User(BaseModel):
     last: str
 
 @router.post("", status_code = status.HTTP_201_CREATED)
-def create_user(user: User):
+def create_user(user: list[User]):
     add_user =   '''INSERT INTO users (username, first, last)
                     VALUES (:username, :first, :last)
                     ON CONFLICT (username) DO NOTHING
