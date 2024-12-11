@@ -431,28 +431,49 @@ def finish_round(bracket_id:int):
         logger.error(f"Unexpected error finishing round: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error finishing round")
 
+
 class MatchWon(BaseModel):
     won_by_id:int
 
+
 @router.post("/{bracket_id}/winner", status_code = status.HTTP_201_CREATED)
-def declare_winner(bracket_id:int, winner:MatchWon):
-    update_check = text('''with bracket_check as (
-                              SELECT id as bid FROM brackets
-                              WHERE id = :bracket_id
-                              AND started = TRUE
-                            ),
-                            match_check as (
-                              select match_id as mid from bracket_check
-                              join matches on bid = bracket_id
-                              join match_players on matches.id = match_id
-                              where winner_id is null 
-                              and player_id = :won_by_id
-                            )
-                            update matches 
-                            set winner_id = :won_by_id
-                            where id = 
-                            (select mid from match_check)
-                            RETURNING id''')
+def declare_winner(bracket_id:int, winner:list[MatchWon]):
+    winner = [dict(e, bracket_id = bracket_id) for e in winner]
+
+    create_temp = text('''
+        CREATE TEMPORARY TABLE temp_t(
+            won_by_id BIGINT null,
+            bracket_id BIGINT not null,
+            mid BIGINT not null
+        )ON COMMIT DROP;
+        ''')
+
+    temp_insert = text('''
+        WITH bracket_check AS (
+            SELECT id AS bid
+            FROM brackets
+            WHERE id = :bracket_id
+            AND started = TRUE
+        ),
+        match_check AS (
+            SELECT match_id AS mid
+            FROM bracket_check
+            JOIN matches ON bid = bracket_id
+            JOIN match_players ON matches.id = match_id
+            WHERE winner_id IS NULL
+            AND player_id = :won_by_id
+        )
+        INSERT INTO temp_t (bracket_id,won_by_id, mid)
+        SELECT :bracket_id, :won_by_id, mid 
+        FROM match_check''')
+
+    temp_update = text('''
+        UPDATE matches
+        SET winner_id = won_by_id
+        FROM temp_t
+        WHERE id = mid
+        RETURNING id as match_id, winner_id as won_by_id
+    ''')
 
     update_score = text(''' WITH null_check as(
                                 SELECT count(match_id) as count_match FROM match_players
@@ -465,14 +486,16 @@ def declare_winner(bracket_id:int, winner:MatchWon):
                             and (SELECT count_match FROM null_check) > 1''')
     try:
         with db.engine.begin() as connection:
-            exists = connection.execute(update_check,{"bracket_id":bracket_id}|dict(winner)).scalar()
+            connection.execute(create_temp)
+            connection.execute(temp_insert, winner)
+            exists = connection.execute(temp_update,{"bracket_id":bracket_id}).mappings().all()
             if not exists:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Winner or bracket info not valid')
-            connection.execute(update_score,dict(winner)|{"match_id":exists})
+            connection.execute(update_score,exists)
             return "OK"
     except HTTPException as e:
         logger.error(f"Winner information not valid")
         raise e
-    except Exception as e:
-        logger.error(f"Unexpected error updating winner: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating winner")
+    # except Exception as e:
+    #     logger.error(f"Unexpected error updating winner: {e}")
+    #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating winner")
