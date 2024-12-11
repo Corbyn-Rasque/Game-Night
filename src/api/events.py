@@ -67,8 +67,14 @@ def create_event(event: Event):
             raise HTTPException(status_code = status.HTTP_500_INTERNAL_SERVER_ERROR, detail = 'Error creating event.')
 
 
+class Attendee(BaseModel):
+    username: str
+
 @router.post("/{event_id}", status_code = status.HTTP_201_CREATED)
-def join_event(username: str, event_id: int):
+def join_event(event_id: int, users: list[Attendee]):
+
+    users = [dict(e, event_id=event_id) for e in users]
+
     join =  ''' INSERT INTO event_attendance (user_id, event_id)
                 SELECT users.id, :event_id FROM users 
                 WHERE username = :username
@@ -76,7 +82,7 @@ def join_event(username: str, event_id: int):
 
     with db.engine.begin() as connection:
         try:
-            connection.execute(text(join), {"event_id": event_id, "username" : username}).one()
+            connection.execute(text(join), users)
             connection.commit()
 
         except exc.IntegrityError as e:

@@ -132,19 +132,25 @@ def create_bracket(bracket: Bracket):
             if 'game_id' in error:  raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = 'Game ID does not exist.')
 
 
-@router.post("/{bracket_id}/players/{user_id}", status_code = status.HTTP_201_CREATED)
-def add_user(bracket_id: int, user_id: int):
+class Entrant(BaseModel):
+    user_id:int
+
+@router.post("/{bracket_id}/players/", status_code = status.HTTP_201_CREATED)
+def add_user(bracket_id: int, user_id: list[Entrant]):
+
+    info = [dict(e, bracket_id = bracket_id) for e in user_id]
+
     add_user = text(''' INSERT INTO bracket_entrants (bracket_id, player_id)
                         SELECT :bracket_id, :user_id
                         FROM bracket_entrants
                         WHERE bracket_id = :bracket_id
                         HAVING count(*)<(SELECT num_players FROM brackets WHERE id =:bracket_id)
                         ON CONFLICT(bracket_id, player_id) DO NOTHING
-                        RETURNING bracket_id, player_id''')
+                        ''')
     
     with db.engine.begin() as connection:
         try:
-            connection.execute(add_user, {"bracket_id": bracket_id, "user_id": user_id}).one()
+            connection.execute(add_user, info)
             connection.commit()
 
         except exc.NoResultFound:

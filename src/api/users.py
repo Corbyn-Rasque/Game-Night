@@ -20,16 +20,30 @@ class User(BaseModel):
 
 @router.post("", status_code = status.HTTP_201_CREATED)
 def create_user(user: list[User]):
+    temp_table = text('''   CREATE TEMPORARY TABLE temp_t(
+                                username TEXT NOT NULL,
+                                first TEXT NOT NULL,
+                                last TEXT NOT NULL
+                            )ON COMMIT DROP;
+                            ''')
+
+    temp_insert = text('''  INSERT INTO temp_t (username, first, last)
+                            VALUES(concat(:username, floor(random()*1000+1)::int),:first,:last)''')
+
     add_user =   '''INSERT INTO users (username, first, last)
-                    VALUES (:username, :first, :last)
+                    SELECT username, first, last
+                    FROM temp_t
                     ON CONFLICT (username) DO NOTHING
-                    RETURNING id'''
+                    RETURNING id as user_id, username'''
+
 
     user = [dict(u) for u in user]
 
     with db.engine.begin() as connection:
         try:
-            response = connection.execute(text(add_user), user).mappings().one()
+            connection.execute(temp_table)
+            connection.execute(temp_insert,user)
+            response = connection.execute(text(add_user)).mappings().all()
             return response
         except exc.NoResultFound:
             raise HTTPException(status_code = status.HTTP_409_CONFLICT, detail = 'User already exists.')
@@ -84,3 +98,6 @@ def deactivate_user(username: str):
     with db.engine.begin() as connection:
         result = connection.execute(remove_user, {"username": username})
         if not result.rowcount: raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = "User cannot be deactivated.")
+
+# test_users = [User(username = 'tester333', first = 'john', last = 'doe')]
+# create_user(test_users)
