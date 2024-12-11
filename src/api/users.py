@@ -28,7 +28,7 @@ def create_user(user: list[User]):
                             ''')
 
     temp_insert = text('''  INSERT INTO temp_t (username, first, last)
-                            VALUES(concat(:username, floor(random()*1000+1)::int),:first,:last)''')
+                            VALUES(:username,:first,:last)''')
 
     add_user =   '''INSERT INTO users (username, first, last)
                     SELECT username, first, last
